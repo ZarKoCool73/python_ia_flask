@@ -102,7 +102,7 @@ def get_frame():
                 # Obtener la etiqueta correspondiente a la clase predicha
                 predicted_label = labels_dict[predicted_class]
                 # Mostrar la etiqueta en la parte superior izquierda o derecha de la pantalla según la mano detectada
-                cv2.putText(frame, f'Mano: {hand_label}', (text_x, 50), font, font_scale, (0, 255, 0), font_thickness)
+                #cv2.putText(frame, f'Mano: {hand_label}', (text_x, 50), font, font_scale, (0, 255, 0), font_thickness)
                 cv2.putText(frame, f'Letra: {predicted_label}', (text_x, 100), font, font_scale, (0, 255, 0),
                             font_thickness)
 
