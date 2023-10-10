@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from keras.models import load_model
 import mediapipe as mp
-from flask import Flask, render_template, Response, request, jsonify
+from flask import Flask, render_template, Response, jsonify
 from flask_cors import CORS
 
 # Cargar el modelo preentrenado
@@ -128,8 +128,8 @@ def stop_video():
 
 
 if __name__ == '__main__':
-    # Iniciar la aplicación Flask
-    app.run(debug=True)
+    # Iniciar la aplicación Flask y hacer que escuche en todas las interfaces de red
+    app.run(host='0.0.0.0', debug=True)
 
 # Liberar los recursos
 cap.release()
