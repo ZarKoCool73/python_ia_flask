@@ -71,7 +71,7 @@ transmitiendo_verbos = True
 
 
 # Ruta de la página principal
-@app.route('flask-production-9b42.up.railway.app')
+@app.route('api-test-flask.up.railway.app/')
 def index():
     return "message"
 
@@ -166,14 +166,14 @@ def get_frame_verbos():
 
 
 # Ruta para el streaming de video
-@app.route('flask-production-9b42.up.railway.app/api/video')
+@app.route('api-test-flask.up.railway.app/api/video')
 def video_feed():
     global transmitiendo_video
     transmitiendo_video = True
     return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('flask-production-9b42.up.railway.app/api/videoVerbos')
+@app.route('api-test-flask.up.railway.app/api/videoVerbos')
 def video_verbos_feed():
     global transmitiendo_verbos
     transmitiendo_verbos = True
@@ -181,7 +181,7 @@ def video_verbos_feed():
 
 
 # Ruta para detener el servicio de video
-@app.route('flask-production-9b42.up.railway.app/api/stop_video')
+@app.route('api-test-flask.up.railway.app/api/stop_video')
 def stop_video():
     global transmitiendo_video
     global transmitiendo_verbos
