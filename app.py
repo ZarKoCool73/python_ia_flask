@@ -71,7 +71,7 @@ transmitiendo_verbos = True
 
 
 # Ruta de la página principal
-@app.route('/')
+@app.route('flask-production-9b42.up.railway.app')
 def index():
     return "message"
 
