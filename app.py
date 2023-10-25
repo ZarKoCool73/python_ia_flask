@@ -3,11 +3,12 @@ import cv2
 import numpy as np
 from keras.models import load_model
 import mediapipe as mp
-from flask import Flask, render_template, Response, jsonify
+from flask import Flask, Response, jsonify
 from flask_cors import CORS
 
 # Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
+model1 = load_model('modelo_verbos_3.h5')
 
 # Diccionario de etiquetas para las letras del alfabeto en lenguaje de señas
 labels_dict = {
@@ -18,12 +19,25 @@ labels_dict = {
     24: 'O', 25: 'P', 26: 'Q', 27: 'R', 28: 'S', 29: 'T',
     30: 'U', 31: 'V', 32: 'W', 33: 'X', 34: 'Y', 35: 'Z'
 }
+labels_dict_verbos = {
+    0: 'ABRAZAR', 1: 'CALLAR', 2: 'DORMIR', 3: 'CERRAR', 4: 'CURIOSEAR', 5: 'PERDONAR',
+}
 
 
 # Crear una función para preprocesar la imagen de entrada
 def preprocess_image(image):
     # Redimensionar la imagen a un tamaño compatible con el modelo (por ejemplo, 224x224)
     image = cv2.resize(image, (224, 224))
+    # Normalizar los valores de píxel en el rango [0, 1]
+    image = image.astype('float') / 255.0
+    # Agregar una dimensión adicional para representar el lote de imágenes (batch)
+    image = np.expand_dims(image, axis=0)
+    return image
+
+
+def preprocess_image_verbos(image):
+    # Redimensionar la imagen a un tamaño compatible con el modelo (por ejemplo, 200x200)
+    image = cv2.resize(image, (228, 241))
     # Normalizar los valores de píxel en el rango [0, 1]
     image = image.astype('float') / 255.0
     # Agregar una dimensión adicional para representar el lote de imágenes (batch)
@@ -53,12 +67,13 @@ font_thickness = 2  # Reducir el grosor de la letra
 app = Flask(__name__)
 CORS(app)
 transmitiendo_video = True
+transmitiendo_verbos = True
 
 
 # Ruta de la página principal
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return "message"
 
 
 # Función para obtener los frames de la cámara
@@ -101,9 +116,13 @@ def get_frame():
                 predicted_class = np.argmax(predictions[0])
                 # Obtener la etiqueta correspondiente a la clase predicha
                 predicted_label = labels_dict[predicted_class]
+                if predicted_class < 9:
+                    message = "Numero"
+                else:
+                    message = "Letra"
                 # Mostrar la etiqueta en la parte superior izquierda o derecha de la pantalla según la mano detectada
-                #cv2.putText(frame, f'Mano: {hand_label}', (text_x, 50), font, font_scale, (0, 255, 0), font_thickness)
-                cv2.putText(frame, f'Letra: {predicted_label}', (text_x, 100), font, font_scale, (0, 255, 0),
+                # cv2.putText(frame, f'Mano: {hand_label}', (text_x, 50), font, font_scale, (0, 255, 0), font_thickness)
+                cv2.putText(frame, f'{message}: {predicted_label}', (text_x, 100), font, font_scale, (0, 255, 0),
                             font_thickness)
 
         # Mostrar el fotograma en una ventana
@@ -113,23 +132,67 @@ def get_frame():
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
+def get_frame_verbos():
+    cap = cv2.VideoCapture(0)
+    cap.set(3, 1280)
+    cap.set(4, 720)
+
+    while True:
+
+        ret, frame = cap.read()
+
+        if not ret:
+            break
+
+        # Preprocesar
+        img = preprocess_image_verbos(frame)
+
+        # Predicción
+        pred = model1.predict(img)
+
+        # Obtener etiqueta
+        label = labels_dict_verbos[pred.argmax()]
+
+        # Mostrar resultado
+        cv2.putText(frame, label, (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+        # Encode frame
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    cap.release()
+
+
 # Ruta para el streaming de video
 @app.route('/api/video')
 def video_feed():
+    global transmitiendo_video
+    transmitiendo_video = True
     return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+@app.route('/api/videoVerbos')
+def video_verbos_feed():
+    global transmitiendo_verbos
+    transmitiendo_verbos = True
+    return Response(get_frame_verbos(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 # Ruta para detener el servicio de video
 @app.route('/api/stop_video')
 def stop_video():
     global transmitiendo_video
+    global transmitiendo_verbos
     transmitiendo_video = False
+    transmitiendo_verbos = False
     return jsonify(message='Servicio de video detenido.')
 
 
 if __name__ == '__main__':
     # Iniciar la aplicación Flask y hacer que escuche en todas las interfaces de red
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', debug=False, threaded=True)
 
 # Liberar los recursos
 cap.release()
