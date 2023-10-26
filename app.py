@@ -1,3 +1,4 @@
+#API PARA MODELO DE MACHINE LEARNING
 from tensorflow import keras
 import cv2
 import numpy as np
