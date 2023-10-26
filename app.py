@@ -72,7 +72,7 @@ transmitiendo_verbos = True
 
 
 # Ruta de la página principal
-@app.route('/')
+@app.route('pythoniaflask-production.up.railway.app')
 def index():
     return "message"
 
