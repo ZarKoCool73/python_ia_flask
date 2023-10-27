@@ -1,13 +1,13 @@
 # API PARA MODELO DE MACHINE LEARNING
-import tensorflow.keras.models
-from tensorflow.keras.models import load_model
+
+import tensorflow as tf
+from keras.models import load_model
 import cv2
 import numpy as np
 import mediapipe as mp
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
 
-# Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
 model1 = load_model('modelo_verbos_3.h5')
 
