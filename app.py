@@ -46,7 +46,7 @@ def preprocess_image_verbos(image):
 
 # Inicializar la cámara con la resolución deseada
 width, height = 1280, 720  # Cambia la resolución a la que desees
-cap = cv2.VideoCapture(-1)
+cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
 cap.set(3, width)  # Establecer el ancho del fotograma
 cap.set(4, height)  # Establecer la altura del fotograma
 
