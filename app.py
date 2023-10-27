@@ -1,8 +1,8 @@
-#API PARA MODELO DE MACHINE LEARNING
-from tensorflow import keras
+# API PARA MODELO DE MACHINE LEARNING
+import tensorflow.keras.models
+from tensorflow.keras.models import load_model
 import cv2
 import numpy as np
-from keras.models import load_model
 import mediapipe as mp
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
