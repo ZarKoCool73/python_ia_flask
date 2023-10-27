@@ -191,7 +191,7 @@ def stop_video():
 
 if __name__ == '__main__':
     # Iniciar la aplicación Flask y hacer que escuche en todas las interfaces de red
-    app.run(debug=False, host='0.0.0.0')
+    app.run(debug=False, host='0.0.0.0',port=5000)
 
 # Liberar los recursos
 cap.release()
