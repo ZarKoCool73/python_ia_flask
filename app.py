@@ -1,4 +1,5 @@
-# API PARA MODELO DE MACHINE LEARNING
+#API PARA MODELO DE MACHINE LEARNING
+from tensorflow import keras
 import cv2
 import numpy as np
 from keras.models import load_model
@@ -6,6 +7,7 @@ import mediapipe as mp
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
 
+# Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
 model1 = load_model('modelo_verbos_3.h5')
 
@@ -46,7 +48,7 @@ def preprocess_image_verbos(image):
 
 # Inicializar la cámara con la resolución deseada
 width, height = 1280, 720  # Cambia la resolución a la que desees
-cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(0)
 cap.set(3, width)  # Establecer el ancho del fotograma
 cap.set(4, height)  # Establecer la altura del fotograma
 
@@ -77,7 +79,7 @@ def index():
 
 # Función para obtener los frames de la cámara
 def get_frame():
-    cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(0)
     cap.set(3, width)
     cap.set(4, height)
     hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
@@ -132,7 +134,7 @@ def get_frame():
 
 
 def get_frame_verbos():
-    cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(0)
     cap.set(3, 1280)
     cap.set(4, 720)
 
@@ -191,7 +193,7 @@ def stop_video():
 
 if __name__ == '__main__':
     # Iniciar la aplicación Flask y hacer que escuche en todas las interfaces de red
-    app.run(debug=False, host='0.0.0.0',port=5000)
+    app.run(debug=False, host='0.0.0.0')
 
 # Liberar los recursos
 cap.release()
