@@ -7,6 +7,7 @@ import mediapipe as mp
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
 
+
 # Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
 model1 = load_model('modelo_verbos_3.h5')
