@@ -48,7 +48,7 @@ def preprocess_image_verbos(image):
 
 # Inicializar la cámara con la resolución deseada
 width, height = 1280, 720  # Cambia la resolución a la que desees
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
 cap.set(3, width)  # Establecer el ancho del fotograma
 cap.set(4, height)  # Establecer la altura del fotograma
 
@@ -79,7 +79,7 @@ def index():
 
 # Función para obtener los frames de la cámara
 def get_frame():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
     cap.set(3, width)
     cap.set(4, height)
     hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
@@ -134,7 +134,7 @@ def get_frame():
 
 
 def get_frame_verbos():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
     cap.set(3, 1280)
     cap.set(4, 720)
 
