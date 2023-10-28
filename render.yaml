@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: python_ia_flask
-    
-    # Versión de pip
-    pipVersion: '23.3.1'
