@@ -45,25 +45,6 @@ def preprocess_image_verbos(image):
     image = np.expand_dims(image, axis=0)
     return image
 
-
-# Inicializar la cámara con la resolución deseada
-width, height = 1280, 720  # Cambia la resolución a la que desees
-cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
-cap.set(3, width)  # Establecer el ancho del fotograma
-cap.set(4, height)  # Establecer la altura del fotograma
-
-# Inicializar el detector de manos de Mediapipe
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
-
-hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
-
-# Fuente y tamaño del texto
-font = cv2.FONT_HERSHEY_SIMPLEX
-font_scale = 1  # Reducir el tamaño de la letra
-font_thickness = 2  # Reducir el grosor de la letra
-
 # Inicializar Flask
 app = Flask(__name__)
 CORS(app)
@@ -79,10 +60,24 @@ def index():
 
 # Función para obtener los frames de la cámara
 def get_frame():
-    cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
-    cap.set(3, width)
-    cap.set(4, height)
+    # Inicializar la cámara con la resolución deseada
+    width, height = 1280, 720  # Cambia la resolución a la que desees
+    # cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap.set(3, width)  # Establecer el ancho del fotograma
+    cap.set(4, height)  # Establecer la altura del fotograma
+
+    # Inicializar el detector de manos de Mediapipe
+    mp_hands = mp.solutions.hands
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+
     hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
+
+    # Fuente y tamaño del texto
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1  # Reducir el tamaño de la letra
+    font_thickness = 2  # Reducir el grosor de la letra
     global transmitiendo_video
     while True:
         # Leer el fotograma actual de la cámara
@@ -134,9 +129,25 @@ def get_frame():
 
 
 def get_frame_verbos():
-    cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
-    cap.set(3, 1280)
-    cap.set(4, 720)
+    # cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
+    # Inicializar la cámara con la resolución deseada
+    width, height = 1280, 720  # Cambia la resolución a la que desees
+    # cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap.set(3, width)  # Establecer el ancho del fotograma
+    cap.set(4, height)  # Establecer la altura del fotograma
+
+    # Inicializar el detector de manos de Mediapipe
+    mp_hands = mp.solutions.hands
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+
+    hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
+
+    # Fuente y tamaño del texto
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1  # Reducir el tamaño de la letra
+    font_thickness = 2  # Reducir el grosor de la letra
 
     while True:
 
@@ -196,5 +207,4 @@ if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0')
 
 # Liberar los recursos
-cap.release()
 cv2.destroyAllWindows()
