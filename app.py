@@ -1,3 +1,7 @@
+import os
+
+# Deshabilitar la GPU para TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 #API PARA MODELO DE MACHINE LEARNING
 from tensorflow import keras
 import cv2
