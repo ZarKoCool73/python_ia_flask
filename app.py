@@ -75,7 +75,6 @@ def get_frame():
     # Inicializar el detector de manos de Mediapipe
     mp_hands = mp.solutions.hands
     mp_drawing = mp.solutions.drawing_utils
-    mp_drawing_styles = mp.solutions.drawing_styles
 
     hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
 
@@ -132,6 +131,7 @@ def get_frame():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
+    cap.release()
 
 def get_frame_verbos():
     # cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
@@ -141,18 +141,6 @@ def get_frame_verbos():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(3, width)  # Establecer el ancho del fotograma
     cap.set(4, height)  # Establecer la altura del fotograma
-
-    # Inicializar el detector de manos de Mediapipe
-    mp_hands = mp.solutions.hands
-    mp_drawing = mp.solutions.drawing_utils
-    mp_drawing_styles = mp.solutions.drawing_styles
-
-    hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
-
-    # Fuente y tamaño del texto
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 1  # Reducir el tamaño de la letra
-    font_thickness = 2  # Reducir el grosor de la letra
 
     while True:
 
@@ -183,14 +171,14 @@ def get_frame_verbos():
 
 
 # Ruta para el streaming de video
-@app.route('/api/video')
+@app.route('/api/alpha')
 def video_feed():
     global transmitiendo_video
     transmitiendo_video = True
     return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/api/videoVerbos')
+@app.route('/api/betta')
 def video_verbos_feed():
     global transmitiendo_verbos
     transmitiendo_verbos = True
