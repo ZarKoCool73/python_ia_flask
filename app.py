@@ -171,14 +171,14 @@ def get_frame_verbos():
 
 
 # Ruta para el streaming de video
-@app.route('/api/alpha')
+@app.route('/alpha')
 def video_feed():
     global transmitiendo_video
     transmitiendo_video = True
     return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/api/betta')
+@app.route('/betta')
 def video_verbos_feed():
     global transmitiendo_verbos
     transmitiendo_verbos = True
