@@ -1,15 +1,13 @@
 import os
-
-# Deshabilitar la GPU para TensorFlow
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
-from tensorflow import keras
+from flask import Flask, Response, jsonify
+from flask_cors import CORS
 import cv2
 import numpy as np
 from keras.models import load_model
 import mediapipe as mp
-from flask import Flask, Response, jsonify
-from flask_cors import CORS
+
+# Deshabilitar la GPU para TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 # Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
@@ -63,77 +61,70 @@ def index():
 # Función para obtener los frames de la cámara para letras
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    cap.set(3, 1280)  # Ancho del fotograma
-    cap.set(4, 720)  # Altura del fotograma
 
-    while True:
-        ret, frame = cap.read()
-        print("Captura de fotograma exitosa:", ret)
+    try:
+        while True:
+            ret, frame = cap.read()
+            print("Captura de fotograma exitosa:", ret)
 
-        if not ret:
-            break
+            if not ret:
+                break
 
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(frame_rgb)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = hands.process(frame_rgb)
 
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                thumb_x = int(hand_landmarks.landmark[mp.solutions.hands.HandLandmark.THUMB_TIP].x * frame.shape[1])
-                x_center = int(np.mean([landmark.x for landmark in hand_landmarks.landmark]) * frame.shape[1])
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    thumb_x = int(hand_landmarks.landmark[mp.solutions.hands.HandLandmark.THUMB_TIP].x * frame.shape[1])
+                    x_center = int(np.mean([landmark.x for landmark in hand_landmarks.landmark]) * frame.shape[1])
 
-                if thumb_x < x_center:
-                    hand_label = "Izquierda"
-                    text_x = 10
-                else:
-                    hand_label = "Derecha"
-                    text_x = frame.shape[1] - 200
+                    if thumb_x < x_center:
+                        hand_label = "Izquierda"
+                        text_x = 10
+                    else:
+                        hand_label = "Derecha"
+                        text_x = frame.shape[1] - 200
 
-                mp_drawing.draw_landmarks(frame, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS)
-                preprocessed_frame = preprocess_image(frame)
-                predictions = model.predict(preprocessed_frame)
-                predicted_class = np.argmax(predictions[0])
-                predicted_label = labels_dict[predicted_class]
-                if predicted_class < 9:
-                    message = "Numero"
-                else:
-                    message = "Letra"
+                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS)
+                    preprocessed_frame = preprocess_image(frame)
+                    predictions = model.predict(preprocessed_frame)
+                    predicted_class = np.argmax(predictions[0])
+                    predicted_label = labels_dict[predicted_class]
+                    if predicted_class < 9:
+                        message = "Numero"
+                    else:
+                        message = "Letra"
 
-                cv2.putText(frame, f'{message}: {predicted_label}', (text_x, 100),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    cv2.putText(frame, f'{message}: {predicted_label}', (text_x, 100),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        try:
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
             yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        except Exception as e:
-            print(f"Error al codificar y transmitir el fotograma: {e}")
-
-    cap.release()
-
+    finally:
+        cap.release()
 
 # Función para obtener los frames de la cámara para verbos
 def get_frame_verbos():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    cap.set(3, 1280)  # Ancho del fotograma
-    cap.set(4, 720)  # Altura del fotograma
+    try:
+        while True:
+            ret, frame = cap.read()
 
-    while True:
-        ret, frame = cap.read()
+            if not ret:
+                break
 
-        if not ret:
-            break
+            img = preprocess_image_verbos(frame)
+            pred = model1.predict(img)
+            label = labels_dict_verbos[pred.argmax()]
 
-        img = preprocess_image_verbos(frame)
-        pred = model1.predict(img)
-        label = labels_dict_verbos[pred.argmax()]
+            cv2.putText(frame, label, (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
 
-        cv2.putText(frame, label, (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-
-        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-    cap.release()
+            yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    finally:
+        cap.release()
 
 
 # Ruta para el streaming de video para letras
@@ -152,6 +143,7 @@ def video_verbos_feed():
 @app.route('/api/stop_video', methods=['GET'])
 def stop_video():
     return jsonify(message='Servicio de video detenido.')
+
 
 # No es necesario ejecutar app.run() en un entorno de producción
 if __name__ == '__main__':
