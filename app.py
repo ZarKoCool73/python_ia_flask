@@ -60,7 +60,7 @@ def index():
 
 # Función para obtener los frames de la cámara para letras
 def get_frame():
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(-1, cv2.CAP_DSHOW)
     if not cap.isOpened():
         raise Exception("No se pudo abrir la cámara.")
     try:
