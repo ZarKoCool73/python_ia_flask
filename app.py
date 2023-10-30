@@ -1,4 +1,5 @@
 import os
+
 # Deshabilitar la GPU para TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
@@ -135,7 +136,7 @@ def get_frame_verbos():
 
 
 # Ruta para el streaming de video para letras
-@app.route('/alpha',methods=['GET'])
+@app.route('/alpha', methods=['GET'])
 def video_feed():
     return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -147,14 +148,13 @@ def video_verbos_feed():
 
 
 # Ruta para detener el servicio de video
-@app.route('/api/stop_video')
+@app.route('/api/stop_video', methods=['GET'])
 def stop_video():
     return jsonify(message='Servicio de video detenido.')
 
-
 # No es necesario ejecutar app.run() en un entorno de producción
-# if __name__ == '__main__':
-#     app.run(debug=False, host='0.0.0.0')
+if __name__ == '__main__':
+    app.run(debug=False, host='0.0.0.0')
 
 # Liberar los recursos
 cv2.destroyAllWindows()
