@@ -1,13 +1,13 @@
 import os
+# Deshabilitar la GPU para TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
 import cv2
 import numpy as np
 from keras.models import load_model
 import mediapipe as mp
-
-# Deshabilitar la GPU para TensorFlow
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 # Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
@@ -61,7 +61,8 @@ def index():
 # Función para obtener los frames de la cámara para letras
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-
+    if not cap.isOpened():
+        raise Exception("No se pudo abrir la cámara.")
     try:
         while True:
             ret, frame = cap.read()
@@ -107,9 +108,12 @@ def get_frame():
 # Función para obtener los frames de la cámara para verbos
 def get_frame_verbos():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        raise Exception("No se pudo abrir la cámara para verbos.")
     try:
         while True:
             ret, frame = cap.read()
+            print("Captura de fotograma exitosa o no:", ret)
 
             if not ret:
                 break
