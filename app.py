@@ -146,8 +146,8 @@ def stop_video():
 
 
 # No es necesario ejecutar app.run() en un entorno de producción
-if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0')
+#if __name__ == '__main__':
+#    app.run(debug=False, host='0.0.0.0')
 
 # Liberar los recursos
 cv2.destroyAllWindows()
