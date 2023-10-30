@@ -1,4 +1,7 @@
 import os
+# Deshabilitar la GPU para TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 from tensorflow import keras
 import cv2
 import numpy as np
@@ -6,9 +9,6 @@ from keras.models import load_model
 import mediapipe as mp
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
-
-# Deshabilitar la GPU para TensorFlow
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 # Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
