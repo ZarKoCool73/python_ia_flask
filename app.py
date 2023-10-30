@@ -36,12 +36,14 @@ mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
 
+
 # Función para preprocesar la imagen de entrada para la mano
 def preprocess_image(image):
     image = cv2.resize(image, (224, 224))
     image = image.astype('float') / 255.0
     image = np.expand_dims(image, axis=0)
     return image
+
 
 # Función para preprocesar la imagen de entrada para verbos
 def preprocess_image_verbos(image):
@@ -50,16 +52,18 @@ def preprocess_image_verbos(image):
     image = np.expand_dims(image, axis=0)
     return image
 
+
 # Ruta de la página principal
 @app.route('/')
 def index():
     return "message"
 
+
 # Función para obtener los frames de la cámara para letras
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(3, 1280)  # Ancho del fotograma
-    cap.set(4, 720)   # Altura del fotograma
+    cap.set(4, 720)  # Altura del fotograma
 
     while True:
         ret, frame = cap.read()
@@ -95,18 +99,21 @@ def get_frame():
                 cv2.putText(frame, f'{message}: {predicted_label}', (text_x, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-
-        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        try:
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+            print(f"Error al codificar y transmitir el fotograma: {e}")
 
     cap.release()
+
 
 # Función para obtener los frames de la cámara para verbos
 def get_frame_verbos():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(3, 1280)  # Ancho del fotograma
-    cap.set(4, 720)   # Altura del fotograma
+    cap.set(4, 720)  # Altura del fotograma
 
     while True:
         ret, frame = cap.read()
@@ -126,20 +133,24 @@ def get_frame_verbos():
 
     cap.release()
 
+
 # Ruta para el streaming de video para letras
-@app.route('/alpha')
+@app.route('/alpha',methods=['GET'])
 def video_feed():
     return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 # Ruta para el streaming de video para verbos
-@app.route('/betta')
+@app.route('/betta', methods=['GET'])
 def video_verbos_feed():
     return Response(get_frame_verbos(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 # Ruta para detener el servicio de video
 @app.route('/api/stop_video')
 def stop_video():
     return jsonify(message='Servicio de video detenido.')
+
 
 # No es necesario ejecutar app.run() en un entorno de producción
 # if __name__ == '__main__':
