@@ -176,12 +176,15 @@ def stop_video():
     return jsonify(message='Servicio de video detenido.')
 
 
-@app.route('/offer', methods=['POST'])
+@app.route('/offer')
 def offer():
-    data = request.get_json()
-    offer = RTCSessionDescription(sdp=data['offer']['sdp'], type=data['offer']['type'])
-    # Crear una respuesta a la oferta y enviarla de vuelta al cliente
-    answer = create_answer(offer)  # Implementa esta función para crear una respuesta
+    offer = RTCSessionDescription(sdp=request.json['offer']['sdp'], type=...)
+
+    pc = RTCPeerConnection()
+    pc.setRemoteDescription(offer)
+    answer = pc.createAnswer()
+    pc.setLocalDescription(answer)
+
     return jsonify({'answer': {'sdp': answer.sdp, 'type': answer.type}})
 
 

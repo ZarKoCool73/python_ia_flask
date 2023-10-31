@@ -28,8 +28,8 @@
         };
 
         // Obtener la transmisión de video desde la API de video de letras
-        const alphaStream = await fetch('https://services-ia.onrender.com/alpha');
-        const alphaVideoStream = await alphaStream.body;
+        const alphaStream = await fetch('/alpha');
+        const alphaVideoStream = alphaStream.clone();
         const alphaVideoTrack = alphaVideoStream.getVideoTracks()[0];
         peerConnection.addTrack(alphaVideoTrack, alphaVideoStream);
 
