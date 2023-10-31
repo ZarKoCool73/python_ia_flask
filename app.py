@@ -2,7 +2,7 @@ import os
 # Deshabilitar la GPU para TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-from flask import Flask, Response, jsonify
+from flask import Flask, Response, jsonify,render_template
 from flask_cors import CORS
 import cv2
 import numpy as np
@@ -55,7 +55,7 @@ def preprocess_image_verbos(image):
 # Ruta de la página principal
 @app.route('/')
 def index():
-    return "KAKARROTOOOOOOOOOOOOOO"
+    return render_template("index.html")
 
 
 # Función para obtener los frames de la cámara para letras

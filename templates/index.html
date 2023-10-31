@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC App</title>
+</head>
+<body>
+<video id="localVideo" autoplay></video>
+<video id="remoteVideo" autoplay></video>
+
+<script>
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    const configuration = {iceServers: [{urls: 'stun:stun.l.google.com:19302'}]};
+    const peerConnection = new RTCPeerConnection(configuration);
+
+    navigator.mediaDevices.getUserMedia({video: true, audio: false})
+        .then(stream => {
+            localVideo.srcObject = stream;
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+            // Enviar señal para iniciar el streaming de video al servidor
+            fetch('https://services-ia.onrender.com/alpha', {
+                method: 'GET',
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error al iniciar el streaming de video');
+                    }
+                    // Stream de video iniciado correctamente
+                    console.log('Streaming de video iniciado');
+                })
+                .catch(error => {
+                    // Manejar errores de la solicitud aquí
+                    console.error('Error:', error);
+                });
+        })
+        .catch(error => console.error('Error al acceder a los dispositivos multimedia: ', error));
+
+    peerConnection.ontrack = event => {
+        remoteVideo.srcObject = event.streams[0];
+    };
+
+    // Configurar señalización y gestión de la conexión WebRTC aquí
+
+</script>
+</body>
+</html>
