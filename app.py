@@ -1,7 +1,7 @@
 import os
 # Deshabilitar la GPU para TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
 import cv2
@@ -60,7 +60,7 @@ def index():
 
 # Función para obtener los frames de la cámara para letras
 def get_frame():
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW.imag)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
         print("No funciona camara", cap)
     try:
