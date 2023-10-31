@@ -1,13 +1,16 @@
 import os
+
 # Deshabilitar la GPU para TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-from flask import Flask, Response, jsonify,render_template
+from flask import Flask, Response, jsonify, render_template, request
 from flask_cors import CORS
 import cv2
 import numpy as np
 from keras.models import load_model
+from aiortc import RTCPeerConnection, RTCSessionDescription
 import mediapipe as mp
+import asyncio
 
 # Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
@@ -107,6 +110,7 @@ def get_frame():
     finally:
         cap.release()
 
+
 # Función para obtener los frames de la cámara para verbos
 def get_frame_verbos():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -133,7 +137,28 @@ def get_frame_verbos():
     finally:
         cap.release()
 
+def create_answer(offer):
+    # Configurar la conexión peer
+    configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
+    peer_connection = RTCPeerConnection(configuration)
 
+    # Establecer la descripción de la oferta remota
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    async def set_remote_description():
+        await peer_connection.setRemoteDescription(offer)
+    loop.run_until_complete(set_remote_description())
+
+    # Crear una respuesta a la oferta
+    answer = loop.run_until_complete(peer_connection.createAnswer())
+
+    # Establecer la descripción local y obtener la respuesta
+    async def set_local_description():
+        await peer_connection.setLocalDescription(answer)
+    loop.run_until_complete(set_local_description())
+
+    return peer_connection.localDescription
 # Ruta para el streaming de video para letras
 @app.route('/alpha', methods=['GET'])
 def video_feed():
@@ -152,8 +177,17 @@ def stop_video():
     return jsonify(message='Servicio de video detenido.')
 
 
+@app.route('/offer', methods=['POST'])
+def offer():
+    data = request.get_json()
+    offer = RTCSessionDescription(sdp=data['offer']['sdp'], type=data['offer']['type'])
+    # Crear una respuesta a la oferta y enviarla de vuelta al cliente
+    answer = create_answer(offer)  # Implementa esta función para crear una respuesta
+    return jsonify({'answer': {'sdp': answer.sdp, 'type': answer.type}})
+
+
 # No es necesario ejecutar app.run() en un entorno de producción
-#if __name__ == '__main__':
+# if __name__ == '__main__':
 #    app.run(debug=False, host='0.0.0.0')
 
 # Liberar los recursos
