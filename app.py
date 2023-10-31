@@ -55,14 +55,14 @@ def preprocess_image_verbos(image):
 # Ruta de la página principal
 @app.route('/')
 def index():
-    return "message"
+    return "KAKARROTOOOOOOOOOOOOOO"
 
 
 # Función para obtener los frames de la cámara para letras
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
-        print("No funciona camara", cap)
+        print("No funciona camara", cv2.getBuildInformation())
     try:
         while True:
             ret, frame = cap.read()
