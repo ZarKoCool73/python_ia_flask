@@ -60,7 +60,7 @@ def index():
 
 # Función para obtener los frames de la cámara para letras
 def get_frame():
-    cap = cv2.VideoCapture(0, cv2.CAP_PROP_BUFFERSIZE)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW.imag)
     if not cap.isOpened():
         print("No funciona camara", cap)
     try:
@@ -107,7 +107,7 @@ def get_frame():
 
 # Función para obtener los frames de la cámara para verbos
 def get_frame_verbos():
-    cap = cv2.VideoCapture(0, cv2.CAP_PROP_BUFFERSIZE)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
         print("No se pudo abrir la cámara para verbos.", cap)
     try:
