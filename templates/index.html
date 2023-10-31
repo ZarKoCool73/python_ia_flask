@@ -14,79 +14,46 @@
     const remoteVideo = document.getElementById('remoteVideo');
     let peerConnection;
 
-    // Función para establecer la conexión WebRTC
     async function setupWebRTC() {
-        // Obtener la transmisión de video local
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
         localVideo.srcObject = stream;
 
-        // Configurar la conexión peer
-        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        const configuration = {iceServers: [{urls: 'stun:stun.l.google.com:19302'}]};
         peerConnection = new RTCPeerConnection(configuration);
 
-        // Agregar la transmisión local a la conexión peer
         stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-        // Establecer el evento ontrack para mostrar el video remoto
         peerConnection.ontrack = event => {
             remoteVideo.srcObject = event.streams[0];
         };
 
         // Obtener la transmisión de video desde la API de video de letras
-        const alphaStream = await fetch('/alpha');
-        const alphaVideoStream = await alphaStream.body.pipeThrough(new TextDecoderStream()).pipeThrough(new ReadableStream());
-        const alphaVideoTrack = new MediaStreamTrack({ kind: 'video' });
-        alphaVideoTrack.onmute = () => {};
-        alphaVideoTrack.enabled = true;
-        alphaVideoTrack.readyState = 'live';
-        alphaVideoTrack.onended = () => {};
-        alphaVideoTrack.onunmute = () => {};
-        alphaVideoTrack.onoverconstrained = () => {};
-        alphaVideoTrack.clone = () => {};
-        alphaVideoTrack.onisolationchange = () => {};
-        alphaVideoTrack.onended = () => {};
-        const alphaMediaStream = new MediaStream([alphaVideoTrack]);
-        alphaVideoTrack.source = alphaVideoStream;
-        alphaVideoTrack.dispatchEvent(new Event('isolationchange'));
-        peerConnection.addTrack(alphaVideoTrack, alphaMediaStream);
+        const alphaStream = await fetch('https://services-ia.onrender.com/alpha');
+        const alphaVideoStream = await alphaStream.body;
+        const alphaVideoTrack = alphaVideoStream.getVideoTracks()[0];
+        peerConnection.addTrack(alphaVideoTrack, alphaVideoStream);
 
         // Obtener la transmisión de video desde la API de video de verbos
         const bettaStream = await fetch('/betta');
-        const bettaVideoStream = await bettaStream.body.pipeThrough(new TextDecoderStream()).pipeThrough(new ReadableStream());
-        const bettaVideoTrack = new MediaStreamTrack({ kind: 'video' });
-        bettaVideoTrack.onmute = () => {};
-        bettaVideoTrack.enabled = true;
-        bettaVideoTrack.readyState = 'live';
-        bettaVideoTrack.onended = () => {};
-        bettaVideoTrack.onunmute = () => {};
-        bettaVideoTrack.onoverconstrained = () => {};
-        bettaVideoTrack.clone = () => {};
-        bettaVideoTrack.onisolationchange = () => {};
-        bettaVideoTrack.onended = () => {};
-        const bettaMediaStream = new MediaStream([bettaVideoTrack]);
-        bettaVideoTrack.source = bettaVideoStream;
-        bettaVideoTrack.dispatchEvent(new Event('isolationchange'));
-        peerConnection.addTrack(bettaVideoTrack, bettaMediaStream);
-
-        // Establecer la señalización y gestionar la conexión WebRTC aquí
+        const bettaVideoStream = await bettaStream.body;
+        const bettaVideoTrack = bettaVideoStream.getVideoTracks()[0];
+        peerConnection.addTrack(bettaVideoTrack, bettaVideoStream);
 
         // Crear y enviar la oferta de conexión
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        // Enviar la oferta al servidor Flask
+
         const response = await fetch('/offer', {
             method: 'POST',
-            body: JSON.stringify({ offer: offer }),
+            body: JSON.stringify({offer: offer}),
             headers: {
                 'Content-Type': 'application/json'
             }
         });
         const answer = await response.json();
-        // Establecer la respuesta remota
         await peerConnection.setRemoteDescription(new RTCSessionDescription(answer.answer));
     }
 
-    // Llamar a la función para establecer la conexión WebRTC al cargar la página
     setupWebRTC().catch(error => console.error('Error en la configuración de WebRTC:', error));
 </script>
 </body>

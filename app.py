@@ -65,13 +65,12 @@ def index():
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
-        print("No funciona camara1", cv2.Error)
-        print("No funciona camara2", cv2.getLogLevel())
-        print("No funciona camara3", cv2.getBuildInformation())
+        print("No funciona la cámara")
+        return
+
     try:
         while True:
             ret, frame = cap.read()
-            print("Captura de fotograma exitosa:", ret)
 
             if not ret:
                 break
