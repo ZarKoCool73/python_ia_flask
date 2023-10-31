@@ -62,7 +62,9 @@ def index():
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
-        print("No funciona camara", cv2.getBuildInformation())
+        print("No funciona camara1", cv2.Error)
+        print("No funciona camara2", cv2.getLogLevel())
+        print("No funciona camara3", cv2.getBuildInformation())
     try:
         while True:
             ret, frame = cap.read()
@@ -109,7 +111,8 @@ def get_frame():
 def get_frame_verbos():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
-        print("No funciona camara", cv2.getBuildInformation())
+        print("No funciona camara1", cv2.Error)
+        print("No funciona camara2", cv2.getBuildInformation())
     try:
         while True:
             ret, frame = cap.read()
