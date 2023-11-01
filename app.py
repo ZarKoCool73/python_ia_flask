@@ -3,7 +3,7 @@ import os
 # Deshabilitar la GPU para TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, make_response
 from flask_cors import CORS
 import cv2
 import numpy as np
@@ -11,6 +11,10 @@ from keras.models import load_model
 from aiortc import RTCPeerConnection, RTCSessionDescription
 import mediapipe as mp
 import asyncio
+import base64
+import io
+
+from PIL import Image
 
 # Cargar el modelo preentrenado
 model = load_model('lenguaje_detector_1.model')
@@ -110,6 +114,38 @@ def get_frame():
         cap.release()
 
 
+def preprocess_image1(image):
+    image = cv2.resize(image, (224, 224))
+    image = image.astype('float') / 255.0
+    image = np.expand_dims(image, axis=0)
+    return image
+
+
+@app.route('/process_image', methods=['POST'])
+def process_image():
+    img_data = request.get_json()['imageData']
+
+    # Decodificar imagen
+    img_bytes = base64.b64decode(img_data.split(',')[1])
+    img = np.array(Image.open(io.BytesIO(img_bytes)))
+
+    # Preprocesar
+    prep_img = preprocess_image1(img)
+
+    # Predicción
+    pred = model.predict(prep_img)
+    sign = labels_dict[np.argmax(pred)]
+
+    # Convertir imagen a base64
+    _, buffer = cv2.imencode('.jpg', img)
+    img_base64 = base64.b64encode(buffer).decode('utf-8')
+
+    return jsonify({
+        'image': f'data:image/jpeg;base64,{img_base64}',
+        'sign': sign
+    })
+
+
 # Función para obtener los frames de la cámara para verbos
 def get_frame_verbos():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -136,6 +172,7 @@ def get_frame_verbos():
     finally:
         cap.release()
 
+
 def create_answer(offer):
     # Configurar la conexión peer
     configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
@@ -147,6 +184,7 @@ def create_answer(offer):
 
     async def set_remote_description():
         await peer_connection.setRemoteDescription(offer)
+
     loop.run_until_complete(set_remote_description())
 
     # Crear una respuesta a la oferta
@@ -155,9 +193,12 @@ def create_answer(offer):
     # Establecer la descripción local y obtener la respuesta
     async def set_local_description():
         await peer_connection.setLocalDescription(answer)
+
     loop.run_until_complete(set_local_description())
 
     return peer_connection.localDescription
+
+
 # Ruta para el streaming de video para letras
 @app.route('/alpha', methods=['GET'])
 def video_feed():
