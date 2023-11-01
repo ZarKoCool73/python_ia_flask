@@ -179,12 +179,10 @@ def stop_video():
 @app.route('/offer')
 def offer():
     offer = RTCSessionDescription(sdp=request.json['offer']['sdp'], type=...)
-
     pc = RTCPeerConnection()
     pc.setRemoteDescription(offer)
     answer = pc.createAnswer()
     pc.setLocalDescription(answer)
-
     return jsonify({'answer': {'sdp': answer.sdp, 'type': answer.type}})
 
 

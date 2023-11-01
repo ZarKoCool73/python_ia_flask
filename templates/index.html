@@ -28,11 +28,15 @@
         };
 
         // Obtener la transmisión de video desde la API de video de letras
-        const alphaStream = await fetch('/alpha');
-        const alphaVideoStream = alphaStream.clone();
-        const alphaVideoTrack = alphaVideoStream.getVideoTracks()[0];
-        peerConnection.addTrack(alphaVideoTrack, alphaVideoStream);
+        try {
+            const response = await fetch('/alpha');  // Hacer la solicitud a la ruta /alpha
+            const mediaStream = await response.stream();  // Obtener el MediaStream directamente desde la respuesta
 
+            // Añadir el track de video al peer connection
+            peerConnection.addTrack(mediaStream.getVideoTracks()[0], mediaStream);
+        } catch (error) {
+            console.error('Error al obtener el MediaStream desde la API:', error);
+        }
         // Obtener la transmisión de video desde la API de video de verbos
         const bettaStream = await fetch('/betta');
         const bettaVideoStream = await bettaStream.body;
