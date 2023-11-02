@@ -2,7 +2,7 @@
 .idea/misc.xml
 *.pyc
 *.xml
-.idea/ApiPrueba.iml
-.idea/misc.xml
+*.iml
+.idea
 __pycache__/app.cpython-39.pyc
 viaservice
