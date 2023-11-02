@@ -5,13 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC App</title>
 </head>
-<body>
-<video id="localVideo" autoplay></video>
-<video id="remoteVideo" autoplay></video>
-<button id="captureButton">Capturar Imagen</button>
+<style>
+    *{
+        box-sizing: border-box;
+    }
+    .container_video{
+        display: flex;
+        flex-direction: column;
+        width: 100vw;
+        height: 100vh;
+        align-items: center;
+    }
+    .container_video> video{
+        width: 83vw;
+    }
+    button {
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            cursor: pointer;
+        }
+
+    .button{
+        border-color: #3A7734;
+        margin-top: 15px;
+        border-radius: 10px;
+        background-color: #3A7734;
+        color: white;
+        font-size: 18px;
+        padding: 10px;
+    }
+</style>
+<body style="padding: 0; margin: 0">
+<div class="container_video">
+    <video id="localVideo" autoplay></video>
+    <video id="remoteVideo" style="display: none" autoplay></video>
+    <button id="captureButton" class="button">Capturar Imagen</button>
+
+</div>
+
 <canvas id="canvas" style="display:none;"></canvas>
-<img id="capturedImage" src="" alt="Captura de Imagen">
-<img id="processedImg" src="" alt="Imagen Procesada">
+
 <div id="detectedSign"></div>
 <script>
     const localVideo = document.getElementById('localVideo');
@@ -44,6 +79,9 @@
 
             const imgData = canvas.toDataURL('image/jpeg')
 
+            console.log(window.location.href)
+            console.log(window.location.href.includes('expressions'))
+
             const response = fetch('/process_image', {
                 method: 'POST',
                 headers: {
@@ -57,10 +95,10 @@
             const data = response.json()
 
             // Mostrar imagen procesada
-            processedImg.src = data.image
+            //processedImg.src = data.image
 
             // Mostrar signo detectado
-            detectedSign.innerText = data.sign
+         //   detectedSign.innerText = data.sign
         });
     }
 

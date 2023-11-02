@@ -64,7 +64,13 @@ def preprocess_image_verbos(image):
 def index():
     return render_template("index.html")
 
+@app.route('/expressions')
+def expressions():
+    return render_template("index.html")
 
+@app.route('/comprehension')
+def comprehension():
+    return render_template("index.html")
 # Función para obtener los frames de la cámara para letras
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
