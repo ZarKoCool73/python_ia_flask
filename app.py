@@ -3,14 +3,12 @@ import os
 # Deshabilitar la GPU para TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-from flask import Flask, Response, jsonify, render_template, request, make_response
+from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 import cv2
 import numpy as np
 from keras.models import load_model
-from aiortc import RTCPeerConnection, RTCSessionDescription
 import mediapipe as mp
-import asyncio
 import base64
 import io
 
@@ -75,55 +73,6 @@ def comprehension():
     return render_template("index.html")
 
 
-# Función para obtener los frames de la cámara para letras
-def get_frame():
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    if not cap.isOpened():
-        print("No funciona la cámara")
-        return
-
-    try:
-        while True:
-            ret, frame = cap.read()
-
-            if not ret:
-                break
-
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = hands.process(frame_rgb)
-
-            if results.multi_hand_landmarks:
-                for hand_landmarks in results.multi_hand_landmarks:
-                    thumb_x = int(hand_landmarks.landmark[mp.solutions.hands.HandLandmark.THUMB_TIP].x * frame.shape[1])
-                    x_center = int(np.mean([landmark.x for landmark in hand_landmarks.landmark]) * frame.shape[1])
-
-                    if thumb_x < x_center:
-                        hand_label = "Izquierda"
-                        text_x = 10
-                    else:
-                        hand_label = "Derecha"
-                        text_x = frame.shape[1] - 200
-
-                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS)
-                    preprocessed_frame = preprocess_image(frame)
-                    predictions = model.predict(preprocessed_frame)
-                    predicted_class = np.argmax(predictions[0])
-                    predicted_label = labels_dict[predicted_class]
-                    if predicted_class < 9:
-                        message = "Numero"
-                    else:
-                        message = "Letra"
-
-                    cv2.putText(frame, f'{message}: {predicted_label}', (text_x, 100),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-    finally:
-        cap.release()
-
-
 @app.route('/process_image', methods=['POST'])
 def process_image():
     img_data = request.get_json()['imageData']
@@ -154,133 +103,6 @@ def process_image():
         'image': f'data:image/jpeg;base64,{img_base64}',
         'sign': sign
     })
-
-
-# Función para obtener los frames de la cámara para verbos
-def get_frame_verbos():
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    if not cap.isOpened():
-        print("No funciona camara1", cv2.Error)
-        print("No funciona camara2", cv2.getBuildInformation())
-    try:
-        while True:
-            ret, frame = cap.read()
-            print("Captura de fotograma exitosa o no:", ret)
-
-            if not ret:
-                break
-
-            img = preprocess_image_verbos(frame)
-            pred = model1.predict(img)
-            label = labels_dict_verbos[pred.argmax()]
-
-            cv2.putText(frame, label, (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-
-            yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-    finally:
-        cap.release()
-
-
-def create_answer(offer):
-    # Configurar la conexión peer
-    configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
-    peer_connection = RTCPeerConnection(configuration)
-
-    # Establecer la descripción de la oferta remota
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    async def set_remote_description():
-        await peer_connection.setRemoteDescription(offer)
-
-    loop.run_until_complete(set_remote_description())
-
-    # Crear una respuesta a la oferta
-    answer = loop.run_until_complete(peer_connection.createAnswer())
-
-    # Establecer la descripción local y obtener la respuesta
-    async def set_local_description():
-        await peer_connection.setLocalDescription(answer)
-
-    loop.run_until_complete(set_local_description())
-
-    return peer_connection.localDescription
-
-
-# Ruta para el streaming de video para letras
-@app.route('/alpha', methods=['GET'])
-def video_feed():
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    if not cap.isOpened():
-        print("No funciona la cámara")
-        return
-
-    try:
-        while True:
-            ret, frame = cap.read()
-
-            if not ret:
-                break
-
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = hands.process(frame_rgb)
-
-            if results.multi_hand_landmarks:
-                for hand_landmarks in results.multi_hand_landmarks:
-                    thumb_x = int(hand_landmarks.landmark[mp.solutions.hands.HandLandmark.THUMB_TIP].x * frame.shape[1])
-                    x_center = int(np.mean([landmark.x for landmark in hand_landmarks.landmark]) * frame.shape[1])
-
-                    if thumb_x < x_center:
-                        hand_label = "Izquierda"
-                        text_x = 10
-                    else:
-                        hand_label = "Derecha"
-                        text_x = frame.shape[1] - 200
-
-                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS)
-                    preprocessed_frame = preprocess_image(frame)
-                    predictions = model.predict(preprocessed_frame)
-                    predicted_class = np.argmax(predictions[0])
-                    predicted_label = labels_dict[predicted_class]
-                    if predicted_class < 9:
-                        message = "Numero"
-                    else:
-                        message = "Letra"
-
-                    cv2.putText(frame, f'{message}: {predicted_label}', (text_x, 100),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-    finally:
-        cap.release()
-
-
-# Ruta para el streaming de video para verbos
-@app.route('/betta', methods=['GET'])
-def video_verbos_feed():
-    return Response(get_frame_verbos(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
-# Ruta para detener el servicio de video
-@app.route('/api/stop_video', methods=['GET'])
-def stop_video():
-    return jsonify(message='Servicio de video detenido.')
-
-
-@app.route('/offer')
-def offer():
-    offer = RTCSessionDescription(sdp=request.json['offer']['sdp'], type=...)
-    pc = RTCPeerConnection()
-    pc.setRemoteDescription(offer)
-    answer = pc.createAnswer()
-    pc.setLocalDescription(answer)
-    return jsonify({'answer': {'sdp': answer.sdp, 'type': answer.type}})
-
-    # No es necesario ejecutar app.run() en un entorno de producción
 
 
 if __name__ == '__main__':
