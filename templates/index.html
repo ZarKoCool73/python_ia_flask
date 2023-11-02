@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
+<script src="sweetalert2.min.js"></script>
+<link rel="stylesheet" href="sweetalert2.min.css">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -84,9 +86,7 @@
             // Dibujar el fotograma actual del video local en el canvas
             context.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
             const imgData = canvas.toDataURL('image/jpeg')
-
-            console.log(window.location.href)
-            console.log(window.location.href.includes('expressions'))
+            const expressions = window.location.href.includes('expressions')
 
             fetch('/process_image', {
                 method: 'POST',
@@ -94,7 +94,8 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    imageData: imgData
+                    imageData: imgData,
+                    Expressions: expressions
                 })
             })
                 .then(response => {
