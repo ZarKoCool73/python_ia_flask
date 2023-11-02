@@ -200,7 +200,7 @@ def create_answer(offer):
 
 
 # Ruta para el streaming de video para letras
-@app.route('/alpha', methods=['POST'])
+@app.route('/alpha', methods=['GET'])
 def video_feed():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
