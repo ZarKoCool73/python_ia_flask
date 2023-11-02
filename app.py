@@ -139,6 +139,12 @@ def process_image():
         # Predicción
         pred = model.predict(prep_img)
         sign = labels_dict[np.argmax(pred)]
+    else:
+        # Preprocesar
+        prep_img = preprocess_image_verbos(img)
+        # Predicción
+        pred = model1.predict(prep_img)
+        sign = labels_dict_verbos[np.argmax(pred)]
 
     # Convertir imagen a base64
     _, buffer = cv2.imencode('.jpg', img)
