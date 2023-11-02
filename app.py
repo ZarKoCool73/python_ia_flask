@@ -202,7 +202,51 @@ def create_answer(offer):
 # Ruta para el streaming de video para letras
 @app.route('/alpha', methods=['GET'])
 def video_feed():
-    return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        print("No funciona la cámara")
+        return
+
+    try:
+        while True:
+            ret, frame = cap.read()
+
+            if not ret:
+                break
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = hands.process(frame_rgb)
+
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    thumb_x = int(hand_landmarks.landmark[mp.solutions.hands.HandLandmark.THUMB_TIP].x * frame.shape[1])
+                    x_center = int(np.mean([landmark.x for landmark in hand_landmarks.landmark]) * frame.shape[1])
+
+                    if thumb_x < x_center:
+                        hand_label = "Izquierda"
+                        text_x = 10
+                    else:
+                        hand_label = "Derecha"
+                        text_x = frame.shape[1] - 200
+
+                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS)
+                    preprocessed_frame = preprocess_image(frame)
+                    predictions = model.predict(preprocessed_frame)
+                    predicted_class = np.argmax(predictions[0])
+                    predicted_label = labels_dict[predicted_class]
+                    if predicted_class < 9:
+                        message = "Numero"
+                    else:
+                        message = "Letra"
+
+                    cv2.putText(frame, f'{message}: {predicted_label}', (text_x, 100),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    finally:
+        cap.release()
 
 
 # Ruta para el streaming de video para verbos
