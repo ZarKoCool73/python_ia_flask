@@ -6,30 +6,37 @@
     <title>WebRTC App</title>
 </head>
 <style>
-    *{
+    * {
         box-sizing: border-box;
     }
-    .container_video{
+
+    .container_video {
+        margin-top: 20px;
         display: flex;
         flex-direction: column;
-        width: 100vw;
-        height: 100vh;
+        width: 60vw;
+        height: 70vh;
         align-items: center;
     }
-    .container_video> video{
-        width: 83vw;
-    }
-    button {
-            background: none;
-            border: none;
-            padding: 0;
-            margin: 0;
-            cursor: pointer;
-        }
 
-    .button{
+    .container_video > video {
+        width: 83vw;
+        height: 90vh;
+        margin-left: 750px;
+    }
+
+    button {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .button {
         border-color: #3A7734;
         margin-top: 15px;
+        margin-left: 720px;
         border-radius: 10px;
         background-color: #3A7734;
         color: white;
@@ -76,13 +83,12 @@
 
             // Dibujar el fotograma actual del video local en el canvas
             context.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
-
             const imgData = canvas.toDataURL('image/jpeg')
 
             console.log(window.location.href)
             console.log(window.location.href.includes('expressions'))
 
-            const response = fetch('/process_image', {
+            fetch('/process_image', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -91,14 +97,27 @@
                     imageData: imgData
                 })
             })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json(); // Parsea la respuesta JSON
+                })
+                .then(data => {
+                    // Maneja la respuesta del servidor aquí
+                    console.log('Imagen procesada:', data.image);
+                    console.log('Signo predicho:', data.sign);
+                    Swal.fire({
+                        title: 'Respuesta del Servidor',
+                        html: `Imagen procesada: <br> <img src="${data.image}" alt="Processed Image" /><br> Signo predicho: ${data.sign}`,
+                        icon: 'success'
+                    });
+                })
+                .catch(error => {
+                    // Maneja los errores aquí
+                    console.error('Hubo un problema con la solicitud fetch:', error);
+                });
 
-            const data = response.json()
-
-            // Mostrar imagen procesada
-            //processedImg.src = data.image
-
-            // Mostrar signo detectado
-         //   detectedSign.innerText = data.sign
         });
     }
 
