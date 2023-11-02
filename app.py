@@ -64,13 +64,17 @@ def preprocess_image_verbos(image):
 def index():
     return render_template("index.html")
 
+
 @app.route('/expressions')
 def expressions():
     return render_template("index.html")
 
+
 @app.route('/comprehension')
 def comprehension():
     return render_template("index.html")
+
+
 # Función para obtener los frames de la cámara para letras
 def get_frame():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -120,27 +124,27 @@ def get_frame():
         cap.release()
 
 
-def preprocess_image1(image):
-    image = cv2.resize(image, (224, 224))
-    image = image.astype('float') / 255.0
-    image = np.expand_dims(image, axis=0)
-    return image
-
-
 @app.route('/process_image', methods=['POST'])
 def process_image():
     img_data = request.get_json()['imageData']
+    location_data = request.get_json()['Expressions']
 
     # Decodificar imagen
     img_bytes = base64.b64decode(img_data.split(',')[1])
     img = np.array(Image.open(io.BytesIO(img_bytes)))
 
-    # Preprocesar
-    prep_img = preprocess_image1(img)
-
-    # Predicción
-    pred = model.predict(prep_img)
-    sign = labels_dict[np.argmax(pred)]
+    if (location_data):
+        # Preprocesar
+        prep_img = preprocess_image(img)
+        # Predicción
+        pred = model.predict(prep_img)
+        sign = labels_dict[np.argmax(pred)]
+    else:
+        # Preprocesar
+        prep_img = preprocess_image_verbos(img)
+        # Predicción
+        pred = model1.predict(prep_img)
+        sign = labels_dict_verbos[np.argmax(pred)]
 
     # Convertir imagen a base64
     _, buffer = cv2.imencode('.jpg', img)
@@ -275,7 +279,6 @@ def offer():
     answer = pc.createAnswer()
     pc.setLocalDescription(answer)
     return jsonify({'answer': {'sdp': answer.sdp, 'type': answer.type}})
-
 
     # No es necesario ejecutar app.run() en un entorno de producción
 
