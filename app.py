@@ -121,7 +121,7 @@ def preprocess_image1(image):
     return image
 
 
-@app.route('/process_image', methods=['POST'])
+@app.route('https://services-ia.onrender.com/process_image', methods=['POST'])
 def process_image():
     img_data = request.get_json()['imageData']
 
@@ -200,13 +200,13 @@ def create_answer(offer):
 
 
 # Ruta para el streaming de video para letras
-@app.route('/alpha', methods=['GET'])
+@app.route('https://services-ia.onrender.com/alpha', methods=['GET'])
 def video_feed():
     return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 # Ruta para el streaming de video para verbos
-@app.route('/betta', methods=['GET'])
+@app.route('https://services-ia.onrender.com/betta', methods=['GET'])
 def video_verbos_feed():
     return Response(get_frame_verbos(), mimetype='multipart/x-mixed-replace; boundary=frame')
 

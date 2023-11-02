@@ -44,7 +44,7 @@
 
             const imgData = canvas.toDataURL('image/jpeg')
 
-            const response = fetch('/process_image', {
+            const response = fetch('https://services-ia.onrender.com/process_image', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
