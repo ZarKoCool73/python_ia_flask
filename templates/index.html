@@ -26,24 +26,6 @@
         margin-bottom: 20px;
     }
 
-    button {
-        background: none;
-        border: none;
-        padding: 0;
-        margin: 0;
-        cursor: pointer;
-    }
-
-    .button {
-        border-color: #3A7734;
-        margin-top: 15px;
-        border-radius: 10px;
-        background-color: #3A7734;
-        color: white;
-        font-size: 18px;
-        padding: 10px;
-    }
-
     .camera {
         background: linear-gradient(to bottom, #333, #111);
         height: 100%;
@@ -93,6 +75,13 @@
         width: 100%;
         font-size: 250px;
     }
+
+    .results > #accuracy_result {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        font-size: 80px;
+    }
 </style>
 <body>
 <div class="container_video">
@@ -109,6 +98,8 @@
         <div class="results">
             <h3 id="title_result"></h3>
             <p id="content_result"></p>
+            <br>
+            <p id="accuracy_result"></p>
         </div>
     </div>
     {#
@@ -170,18 +161,15 @@
                 }).then(data => {
                     const accuracyPercentage = data.accuracy ? `Precisión: ${data.accuracy.toFixed(2)}%` : '';
                     console.log(data.accuracy)
-                    if (data.accuracy > 90) {
+                    if (data.accuracy > 60) {
                         const title = document.getElementById("title_result")
                         const content = document.getElementById("content_result")
+                        const content_accuracy = document.getElementById("accuracy_result")
 
                         title.innerText = "Interpretación del signo"
                         content.innerText = `${data.sign}`
+                        content_accuracy.innerText = accuracyPercentage
                     }
-                    /*Swal.fire({
-                        icon: 'success',
-                        title: 'Respuesta del Servidor',
-                        html: `<br> Signo predicho: ${data.sign} <br> ${accuracyPercentage}`
-                    });*/
                 }).catch(error => {
                     console.error('Error en la captura y procesamiento de la imagen:', error);
                 });
