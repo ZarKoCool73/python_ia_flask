@@ -125,9 +125,6 @@
             <p id="accuracy_result"></p>
         </div>
     </div>
-    {#
-    <button id="captureButton" class="button">Capturar Imagen</button>
-#}
 
     <script>
         const result_div = document.getElementById("result-div")
@@ -203,7 +200,6 @@
                 });
             }
 
-            // Capturar y procesar la imagen automáticamente cada segundo
             setInterval(captureAndProcessImage, 1000);
         }
 
