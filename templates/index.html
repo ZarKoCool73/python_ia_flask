@@ -14,9 +14,10 @@
     }
 
     .container_video {
-        margin-top: 20px;
+        background-color: #bbbbbb;
         display: flex;
         flex-direction: column;
+        min-height: 100vh;
         height: max-content;
         align-items: center;
     }
@@ -29,9 +30,10 @@
     .camera {
         background: linear-gradient(to bottom, #333, #111);
         height: 100%;
-        width: 60%;
+        width: 100%;
         display: flex;
         justify-content: center;
+        align-items: center;
         padding: 30px;
         border: 3px solid white;
         border-radius: 30px;
@@ -40,26 +42,43 @@
     .camera > video {
         border-radius: 60px;
         border: 10px solid black;
+        width: 100%;
+        height: min-content;
     }
 
     .camera_content {
-        background: linear-gradient(to bottom, #141212, #111);
+        background: linear-gradient(to bottom, #ab3232, #a91616);
         padding: 40px;
         border-radius: 30px;
         display: flex;
+        max-width: 50%;
         justify-content: center;
+    }
+
+    #title {
+        background: linear-gradient(to bottom, #333, #111);
+        color: white;
+        font-size: 40px;
+        padding: 10px;
+        font-weight: 400;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
     }
 
     .results {
         align-items: center;
-        padding: 30px;
+        padding: 75px;
         margin-left: 20px;
         border-radius: 30px;
-        min-width: 300px;
+        max-width: 45%;
         min-height: 300px;
-        background-color: darkgray;
+        background: linear-gradient(to bottom, #3333339e, #1111118c);
         display: flex;
         flex-direction: column;
+        color: white;
+        justify-content: center;
     }
 
     .results > #title_result {
@@ -67,13 +86,16 @@
         width: 100%;
         display: flex;
         justify-content: center;
+        color: black;
+        text-transform: uppercase;
+        text-align: center;
     }
 
     .results > #content_result {
         display: flex;
         justify-content: center;
         width: 100%;
-        font-size: 250px;
+        color: black;
     }
 
     .results > #accuracy_result {
@@ -81,6 +103,7 @@
         justify-content: center;
         width: 100%;
         font-size: 80px;
+        text-align: center;
     }
 </style>
 <body>
@@ -95,7 +118,7 @@
             <canvas id="canvas" style="display:none;"></canvas>
             <div id="detectedSign" style="display: none"></div>
         </div>
-        <div class="results">
+        <div class="results" id="result-div">
             <h3 id="title_result"></h3>
             <p id="content_result"></p>
             <br>
@@ -107,6 +130,7 @@
 #}
 
     <script>
+        const result_div = document.getElementById("result-div")
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
         const canvas = document.getElementById('canvas');
@@ -114,6 +138,7 @@
         const capturedImage = document.getElementById('capturedImage');
         const captureButton = document.getElementById('captureButton');
         let peerConnection;
+        result_div.style.display = "none"
         const title = document.getElementById("title")
         if (window.location.href.includes('expressions')) {
             title.innerText = "Módulo de expresión"
@@ -161,14 +186,17 @@
                 }).then(data => {
                     const accuracyPercentage = data.accuracy ? `Precisión: ${data.accuracy.toFixed(2)}%` : '';
                     console.log(data.accuracy)
-                    if (data.accuracy > 60) {
+                    if (data.accuracy > 80) {
                         const title = document.getElementById("title_result")
                         const content = document.getElementById("content_result")
                         const content_accuracy = document.getElementById("accuracy_result")
 
-                        title.innerText = "Interpretación del signo"
+                        title.innerText = "Interpretación de la seña"
                         content.innerText = `${data.sign}`
                         content_accuracy.innerText = accuracyPercentage
+                        result_div.style.display = "flex"
+
+                        content.style.fontSize = document.location.href.includes('expressions') ? '250px' : '80px'
                     }
                 }).catch(error => {
                     console.error('Error en la captura y procesamiento de la imagen:', error);
