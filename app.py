@@ -82,18 +82,20 @@ def process_image():
     img_bytes = base64.b64decode(img_data.split(',')[1])
     img = np.array(Image.open(io.BytesIO(img_bytes)))
 
-    if (location_data):
+    if location_data:
         # Preprocesar
         prep_img = preprocess_image(img)
         # Predicción
         pred = model.predict(prep_img)
         sign = labels_dict[np.argmax(pred)]
+        accuracy = float(np.max(pred)) * 100  # Calcula la precisión como porcentaje
     else:
         # Preprocesar
         prep_img = preprocess_image_verbos(img)
         # Predicción
         pred = model1.predict(prep_img)
         sign = labels_dict_verbos[np.argmax(pred)]
+        accuracy = float(np.max(pred)) * 100  # Calcula la precisión como porcentaje
 
     # Convertir imagen a base64
     _, buffer = cv2.imencode('.jpg', img)
@@ -101,7 +103,8 @@ def process_image():
 
     return jsonify({
         'image': f'data:image/jpeg;base64,{img_base64}',
-        'sign': sign
+        'sign': sign,
+        'accuracy': accuracy  # Agrega la precisión al JSON de respuesta
     })
 
 

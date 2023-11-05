@@ -111,7 +111,8 @@
             peerConnection.ontrack = event => {
                 remoteVideo.srcObject = event.streams[0];
             };
-            captureButton.addEventListener('click', () => {
+
+            function captureAndProcessImage() {
                 // Asignar el ancho y alto del canvas para que coincida con el tamaño del video
                 canvas.width = localVideo.videoWidth;
                 canvas.height = localVideo.videoHeight;
@@ -136,14 +137,20 @@
                     }
                     return res.json(); // Parsea la respuesta JSON
                 }).then(data => {
-                    console.log(data)
+                    console.log(data);
+                    const accuracyPercentage = data.accuracy ? `Precisión: ${data.accuracy.toFixed(2)}%` : '';
                     Swal.fire({
                         icon: 'success',
                         title: 'Respuesta del Servidor',
-                        html: `<br> Signo predicho: ${data.sign}`
+                        html: `<br> Signo predicho: ${data.sign} <br> ${accuracyPercentage}`
                     });
-                })
-            });
+                }).catch(error => {
+                    console.error('Error en la captura y procesamiento de la imagen:', error);
+                });
+            }
+
+            // Capturar y procesar la imagen automáticamente cada 10 segundos
+            setInterval(captureAndProcessImage, 5000);
         }
 
         setupWebRTC().catch(error => console.error('Error en la configuración de WebRTC:', error));
