@@ -76,36 +76,43 @@ def comprehension():
 @app.route('/process_image', methods=['POST'])
 def process_image():
     img_data = request.get_json()['imageData']
-    location_data = request.get_json()['Expressions']
+    expressions = request.get_json()['Expressions']
 
     # Decodificar imagen
     img_bytes = base64.b64decode(img_data.split(',')[1])
     img = np.array(Image.open(io.BytesIO(img_bytes)))
 
-    if location_data:
-        # Preprocesar
+    if expressions:
+        # Detección de expresiones
+
         prep_img = preprocess_image(img)
-        # Predicción
         pred = model.predict(prep_img)
         sign = labels_dict[np.argmax(pred)]
-        accuracy = float(np.max(pred)) * 100  # Calcula la precisión como porcentaje
+        accuracy = float(np.max(pred)) * 100
+
     else:
-        # Preprocesar
+        # Detección de compresión
+
         prep_img = preprocess_image_verbos(img)
-        # Predicción
         pred = model1.predict(prep_img)
         sign = labels_dict_verbos[np.argmax(pred)]
-        accuracy = float(np.max(pred)) * 100  # Calcula la precisión como porcentaje
+        accuracy = float(np.max(pred)) * 100
 
-    # Convertir imagen a base64
-    _, buffer = cv2.imencode('.jpg', img)
-    img_base64 = base64.b64encode(buffer).decode('utf-8')
+    if sign == "" or accuracy < 80:
+        return jsonify({
+            'message': 'No se detectó seña con suficiente precisión'
+        })
 
-    return jsonify({
-        'image': f'data:image/jpeg;base64,{img_base64}',
-        'sign': sign,
-        'accuracy': accuracy  # Agrega la precisión al JSON de respuesta
-    })
+    else:
+        # encode image
+        _, buffer = cv2.imencode('.jpg', img)
+        img_base64 = base64.b64encode(buffer).decode('utf-8')
+
+        return jsonify({
+            'image': f'data:image/jpeg;base64,{img_base64}',
+            'sign': sign,
+            'accuracy': accuracy
+        })
 
 
 if __name__ == '__main__':

@@ -194,6 +194,16 @@
                         result_div.style.display = "flex"
 
                         content.style.fontSize = document.location.href.includes('expressions') ? '250px' : '80px'
+                    } else {
+                        const title = document.getElementById("title_result")
+                        const content = document.getElementById("content_result")
+                        const content_accuracy = document.getElementById("accuracy_result")
+
+                        title.innerText = "Interpretación de la seña"
+                        content.innerText = `${data.message}`
+                        content_accuracy.innerText = ""
+                        result_div.style.display = "flex"
+                        content.style.fontSize = document.location.href.includes('expressions') ? '80px' : '80px'
                     }
                 }).catch(error => {
                     console.error('Error en la captura y procesamiento de la imagen:', error);
