@@ -6,3 +6,5 @@
 .idea
 __pycache__/app.cpython-39.pyc
 viaservice
+.idea/ApiPrueba.iml
+.idea/misc.xml
