@@ -1,122 +1,69 @@
-import os
-
-# Deshabilitar la GPU para TensorFlow
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-from flask import Flask, jsonify, render_template, request
-from flask_cors import CORS
 import cv2
 import numpy as np
-from keras.models import load_model
-import mediapipe as mp
-import base64
-import io
+import math
+from flask import Flask, Response
+from cvzone.HandTrackingModule import HandDetector
+from cvzone.ClassificationModule import Classifier
 
-from PIL import Image
-
-# Cargar el modelo preentrenado
-model = load_model('lenguaje_detector_1.model')
-model1 = load_model('modelo_verbos_3.h5')
-
-# Diccionario de etiquetas para las letras del alfabeto en lenguaje de señas
-labels_dict = {
-    0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5',
-    6: '6', 7: '7', 8: '8', 9: '9', 10: 'A', 11: 'B',
-    12: 'C', 13: 'D', 14: 'E', 15: 'F', 16: 'G', 17: 'H',
-    18: 'I', 19: 'J', 20: 'K', 21: 'L', 22: 'M', 23: 'N',
-    24: 'O', 25: 'P', 26: 'Q', 27: 'R', 28: 'S', 29: 'T',
-    30: 'U', 31: 'V', 32: 'W', 33: 'X', 34: 'Y', 35: 'Z'
-}
-labels_dict_verbos = {
-    0: 'ABRAZAR', 1: 'CALLAR', 2: 'DORMIR', 3: 'CERRAR', 4: 'CURIOSEAR', 5: 'PERDONAR',
-}
-
-# Inicializar Flask
 app = Flask(__name__)
-CORS(app)
 
-# Inicializar el detector de manos de Mediapipe
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.9)
+model_path="Model/keras_model.h5"
+labels_path="Model/labels.txt"
 
-
-# Función para preprocesar la imagen de entrada para la mano
-def preprocess_image(image):
-    image = cv2.resize(image, (224, 224))
-    image = image.astype('float') / 255.0
-    image = np.expand_dims(image, axis=0)
-    return image
+offset = 20
+imgSize = 300
+cap = cv2.VideoCapture(0)
+detector = HandDetector(maxHands=1)
+classifier = Classifier(model_path, labels_path)
+labels = ["A", "B", "C"]  # Asegúrate de que las etiquetas en labels.txt correspondan a estas etiquetas
 
 
-# Función para preprocesar la imagen de entrada para verbos
-def preprocess_image_verbos(image):
-    image = cv2.resize(image, (228, 241))
-    image = image.astype('float') / 255.0
-    image = np.expand_dims(image, axis=0)
-    return image
+def generate_frames():
+    while True:
+        success, img = cap.read()
+        if not success:
+            break
 
+        hands, img = detector.findHands(img, draw=False)
+        if hands:
+            hand = hands[0]
+            x, y, w, h = hand['bbox']
 
-# Ruta de la página principal
-@app.route('/')
-def index():
-    return render_template("index.html")
+            imgWhite = np.ones((imgSize, imgSize, 3), np.uint8) * 255
+            imgCrop = img[y - offset:y + h + offset, x - offset:x + w + offset]
+
+            if imgCrop.shape[0] > 0 and imgCrop.shape[1] > 0:
+                aspectRatio = h / w
+
+                if aspectRatio > 1:
+                    k = imgSize / h
+                    wCal = math.ceil(k * w)
+                    imgResize = cv2.resize(imgCrop, (wCal, imgSize))
+                    wGap = math.ceil((imgSize - wCal) / 2)
+                    imgWhite[:, wGap:wCal + wGap] = imgResize
+                else:
+                    k = imgSize / w
+                    hCal = math.ceil(k * h)
+                    imgResize = cv2.resize(imgCrop, (imgSize, hCal))
+                    hGap = math.ceil((imgSize - hCal) / 2)
+                    imgWhite[hGap:hCal + hGap, :] = imgResize
+
+                prediction, index = classifier.getPrediction(imgWhite)
+                print(prediction, index)
+
+                cv2.putText(img, labels[index], (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+                cv2.rectangle(img, (x - offset, y - offset), (x + w + offset, y + h + offset), (255, 0, 255), 2)
+
+        ret, buffer = cv2.imencode('.jpg', img)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
 @app.route('/expressions')
-def expressions():
-    return render_template("index.html")
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/comprehension')
-def comprehension():
-    return render_template("index.html")
-
-
-@app.route('/process_image', methods=['POST'])
-def process_image():
-    img_data = request.get_json()['imageData']
-    expressions = request.get_json()['Expressions']
-
-    # Decodificar imagen
-    img_bytes = base64.b64decode(img_data.split(',')[1])
-    img = np.array(Image.open(io.BytesIO(img_bytes)))
-
-    if expressions:
-        # Detección de expresiones
-
-        prep_img = preprocess_image(img)
-        pred = model.predict(prep_img)
-        sign = labels_dict[np.argmax(pred)]
-        accuracy = float(np.max(pred)) * 100
-
-    else:
-        # Detección de compresión
-
-        prep_img = preprocess_image_verbos(img)
-        pred = model1.predict(prep_img)
-        sign = labels_dict_verbos[np.argmax(pred)]
-        accuracy = float(np.max(pred)) * 100
-
-    if sign == "" or accuracy < 80:
-        return jsonify({
-            'message': 'No se detectó seña con suficiente precisión'
-        })
-
-    else:
-        # encode image
-        _, buffer = cv2.imencode('.jpg', img)
-        img_base64 = base64.b64encode(buffer).decode('utf-8')
-
-        return jsonify({
-            'image': f'data:image/jpeg;base64,{img_base64}',
-            'sign': sign,
-            'accuracy': accuracy
-        })
-
-
-if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0')
-
-# Liberar los recursos
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    app.run(debug=True)
