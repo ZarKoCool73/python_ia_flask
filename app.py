@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import math
 import base64
-from flask import Flask, request, jsonify, Response,render_template
+from flask import Flask, request, jsonify, Response, render_template
 from PIL import Image
 import io
 from cvzone.HandTrackingModule import HandDetector
@@ -26,7 +26,6 @@ if not os.path.exists(labels_path):
 
 offset = 20
 imgSize = 300
-cap = cv2.VideoCapture(0)
 detector = HandDetector(maxHands=1)
 classifier = Classifier(model_path, labels_path)
 labels = ["A", "B", "C"]  # Asegúrate de que las etiquetas en labels.txt correspondan a estas etiquetas
@@ -60,6 +59,7 @@ def preprocess_image(img):
     return None, img
 
 def generate_frames():
+    cap = cv2.VideoCapture(0)  # Iniciar la captura de video al inicio de la función
     while True:
         success, img = cap.read()
         if not success:
@@ -84,14 +84,18 @@ def generate_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-#vista sin diseño
+        # Liberar la captura de video al salir de la función
+    cap.release()
+
+# Vista sin diseño
 @app.route('/expressions')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-#vista con diseño
+# Vista con diseño
 @app.route('/expressions1')
 def index():
+    cap = cv2.VideoCapture(0)  # Iniciar la captura de video al acceder a la página
     return render_template('index.html')
 
 @app.route('/process_image', methods=['POST'])
@@ -119,7 +123,7 @@ def process_image():
         cv2.putText(img, sign, (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
         cv2.rectangle(img, (x - offset, y - offset), (x + w + offset, y + h + offset), (255, 0, 255), 2)
 
-    # Encode image
+    # Codificar imagen
     _, buffer = cv2.imencode('.jpg', img_with_bbox)
     img_base64 = base64.b64encode(buffer).decode('utf-8')
 
@@ -131,6 +135,3 @@ def process_image():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-# Liberar los recursos
-cv2.destroyAllWindows()
