@@ -13,22 +13,34 @@ app = Flask(__name__)
 
 # Obtén la ruta absoluta del directorio actual
 current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Construye las rutas absolutas para los archivos
-model_path = os.path.join(current_dir, "Model/keras_model.h5")
-labels_path = os.path.join(current_dir, "Model/labels.txt")
-
-# Verificar la existencia de los archivos
-if not os.path.exists(model_path):
-    raise FileNotFoundError(f"No se encontró el archivo del modelo en {model_path}")
-if not os.path.exists(labels_path):
-    raise FileNotFoundError(f"No se encontró el archivo de etiquetas en {labels_path}")
-
+classifier = None
 offset = 20
-imgSize = 300
+imgSize = 250
 detector = HandDetector(maxHands=1)
-classifier = Classifier(model_path, labels_path)
-labels = ["A", "B", "C"]  # Asegúrate de que las etiquetas en labels.txt correspondan a estas etiquetas
+signs = {
+    '0': {'index': 0}, '1': {'index': 2}, '2': {'index': 2},
+    '3': {'index': 2}, '4': {'index': 2}, '5': {'index': 2},
+    '6': {'index': 2}, '7': {'index': 2}, '8': {'index': 2},
+    '9': {'index': 2}, '10': {'index': 2}
+}
+sign_selected = None
+labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+          "10"]  # Asegúrate de que las etiquetas en labels_8.txt correspondan a estas etiquetas
+
+
+def load_model(sign_type):
+    # Construye las rutas absolutas para los archivos
+    model_path = os.path.join(current_dir, f"Model/keras_model_{sign_type}.h5")
+    labels_path = os.path.join(current_dir, f"Model/labels_{sign_type}.txt")
+
+    # Verificar la existencia de los archivos
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"No se encontró el archivo del modelo en {model_path}")
+    if not os.path.exists(labels_path):
+        raise FileNotFoundError(f"No se encontró el archivo de etiquetas en {labels_path}")
+
+    return Classifier(model_path, labels_path)
+
 
 def preprocess_image(img):
     hands, img = detector.findHands(img, draw=False)
@@ -58,6 +70,7 @@ def preprocess_image(img):
             return imgWhite, img
     return None, img
 
+
 def generate_frames():
     cap = cv2.VideoCapture(0)  # Iniciar la captura de video al inicio de la función
     while True:
@@ -66,14 +79,17 @@ def generate_frames():
             break
 
         img_preprocessed, img_with_bbox = preprocess_image(img)
-        if img_preprocessed is not None:
+        if img_preprocessed is not None or classifier is None:
             prediction, index = classifier.getPrediction(img_preprocessed)
-            sign = labels[index]
+            global sign_selected, signs
+            sign = str(sign_selected)
             accuracy = float(np.max(prediction)) * 100
 
             # Dibujar predicción y rectángulo en la imagen original
             hands, img = detector.findHands(img, draw=False)
-            if hands:
+            print(signs[str(sign_selected)])
+            if hands and index == signs[str(sign_selected)]['index'] and accuracy > 90:
+                print(prediction)
                 hand = hands[0]
                 x, y, w, h = hand['bbox']
                 cv2.putText(img, sign, (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
@@ -87,51 +103,22 @@ def generate_frames():
         # Liberar la captura de video al salir de la función
     cap.release()
 
+
 # Vista sin diseño
-@app.route('/expressions')
+@app.route('/camera')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 # Vista con diseño
-@app.route('/expressions1')
+@app.route('/expressions')
 def index():
-    cap = cv2.VideoCapture(0)  # Iniciar la captura de video al acceder a la página
+    global classifier, sign_selected
+    camera_id = request.args.get('camera_id', default=0, type=str)
+    sign_selected = camera_id
+    classifier = load_model(camera_id)
     return render_template('index.html')
 
-@app.route('/process_image', methods=['POST'])
-def process_image():
-    data = request.get_json()
-    img_data = data['imageData']
-
-    # Decodificar imagen
-    img_bytes = base64.b64decode(img_data.split(',')[1])
-    img = np.array(Image.open(io.BytesIO(img_bytes)))
-
-    img_preprocessed, img_with_bbox = preprocess_image(img)
-    if img_preprocessed is None:
-        return jsonify({'message': 'No se detectó mano'})
-
-    prediction, index = classifier.getPrediction(img_preprocessed)
-    sign = labels[index]
-    accuracy = float(np.max(prediction)) * 100
-
-    # Dibujar predicción y rectángulo en la imagen original
-    hands, img = detector.findHands(img, draw=False)
-    if hands:
-        hand = hands[0]
-        x, y, w, h = hand['bbox']
-        cv2.putText(img, sign, (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
-        cv2.rectangle(img, (x - offset, y - offset), (x + w + offset, y + h + offset), (255, 0, 255), 2)
-
-    # Codificar imagen
-    _, buffer = cv2.imencode('.jpg', img_with_bbox)
-    img_base64 = base64.b64encode(buffer).decode('utf-8')
-
-    return jsonify({
-        'image': f'data:image/jpeg;base64,{img_base64}',
-        'sign': sign,
-        'accuracy': accuracy
-    })
 
 if __name__ == "__main__":
     app.run(debug=True)

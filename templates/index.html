@@ -22,15 +22,24 @@
         .hidden {
             display: none;
         }
+        .title{
+            margin: 0;
+            padding: 2rem;
+            color: white;
+            background: linear-gradient(to bottom, #333, #111);
+        }
+        .m-0{
+            margin: 0!important;
+        }
     </style>
 </head>
-<body>
-    <h1>Hand Sign Detection</h1>
+<body class="m-0">
+    <h1 class="title">Hand Sign Detection</h1>
     <div>
         <h2>Real-time Video Feed</h2>
-        <img id="video-frame" src="/expressions" alt="Video Feed">
+        <img id="video-frame" src="/camera" alt="Video Feed">
     </div>
-    <div id="upload-section">
+    <div id="upload-section" class="hidden">
         <h2>Upload and Process Image</h2>
         <input type="file" id="image-upload" accept="image/*">
         <button id="upload-button">Upload and Process</button>
