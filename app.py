@@ -1,16 +1,16 @@
 import os
+# Deshabilitar la GPU para TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import cv2
 import numpy as np
 import math
-import base64
-from flask import Flask, request, jsonify, Response, render_template
-from PIL import Image
-import io
+from flask import Flask, request, Response, render_template
 from cvzone.HandTrackingModule import HandDetector
 from cvzone.ClassificationModule import Classifier
 
 app = Flask(__name__)
-video_config_camera = 1
+video_config_camera = 0
 
 # Obtén la ruta absoluta del directorio actual
 current_dir = os.path.dirname(os.path.abspath(__file__))
