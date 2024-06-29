@@ -73,7 +73,7 @@ def preprocess_image(img):
 
 
 def generate_frames():
-    cap = cv2.VideoCapture(video_config_camera)  # Iniciar la captura de video al inicio de la función
+    cap = cv2.VideoCapture(video_config_camera,cv2.CAP_DSHOW)  # Iniciar la captura de video al inicio de la función
     while True:
         success, img = cap.read()
         if not success:
