@@ -10,6 +10,7 @@ from cvzone.HandTrackingModule import HandDetector
 from cvzone.ClassificationModule import Classifier
 
 app = Flask(__name__)
+video_config_camera = 0
 
 # Obtén la ruta absoluta del directorio actual
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +73,7 @@ def preprocess_image(img):
 
 
 def generate_frames():
-    cap = cv2.VideoCapture(0)  # Iniciar la captura de video al inicio de la función
+    cap = cv2.VideoCapture(video_config_camera)  # Iniciar la captura de video al inicio de la función
     while True:
         success, img = cap.read()
         if not success:
@@ -88,7 +89,7 @@ def generate_frames():
             # Dibujar predicción y rectángulo en la imagen original
             hands, img = detector.findHands(img, draw=False)
             print(signs[str(sign_selected)])
-            if hands and index == signs[str(sign_selected)]['index'] and accuracy > 90:
+            if hands and index == signs[str(sign_selected)]['index'] and accuracy > 97:
                 print(prediction)
                 hand = hands[0]
                 x, y, w, h = hand['bbox']
@@ -121,4 +122,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0')
