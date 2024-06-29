@@ -10,7 +10,7 @@ from cvzone.HandTrackingModule import HandDetector
 from cvzone.ClassificationModule import Classifier
 
 app = Flask(__name__)
-video_config_camera = 1
+video_config_camera = 0
 
 # Obtén la ruta absoluta del directorio actual
 current_dir = os.path.dirname(os.path.abspath(__file__))
