@@ -1,18 +1,13 @@
 import os
-# Deshabilitar la GPU para TensorFlow
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import cv2
 import numpy as np
 import math
-from flask import Flask, request, Response, render_template
+from flask import Flask, request, jsonify, render_template,Response
+import base64
 from cvzone.HandTrackingModule import HandDetector
 from cvzone.ClassificationModule import Classifier
 
 app = Flask(__name__)
-video_config_camera = 0
-
-# Obtén la ruta absoluta del directorio actual
 current_dir = os.path.dirname(os.path.abspath(__file__))
 classifier = None
 offset = 20
@@ -24,37 +19,28 @@ signs = {
     '6': {'index': 2}, '7': {'index': 2}, '8': {'index': 2},
     '9': {'index': 2}, '10': {'index': 2}
 }
+labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 sign_selected = None
-labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-          "10"]  # Asegúrate de que las etiquetas en labels_8.txt correspondan a estas etiquetas
-
 
 def load_model(sign_type):
-    # Construye las rutas absolutas para los archivos
     model_path = os.path.join(current_dir, f"Model/keras_model_{sign_type}.h5")
     labels_path = os.path.join(current_dir, f"Model/labels_{sign_type}.txt")
-
-    # Verificar la existencia de los archivos
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"No se encontró el archivo del modelo en {model_path}")
     if not os.path.exists(labels_path):
         raise FileNotFoundError(f"No se encontró el archivo de etiquetas en {labels_path}")
-
     return Classifier(model_path, labels_path)
-
 
 def preprocess_image(img):
     hands, img = detector.findHands(img, draw=False)
     if hands:
         hand = hands[0]
         x, y, w, h = hand['bbox']
-
         imgWhite = np.ones((imgSize, imgSize, 3), np.uint8) * 255
         imgCrop = img[y - offset:y + h + offset, x - offset:x + w + offset]
 
         if imgCrop.shape[0] > 0 and imgCrop.shape[1] > 0:
             aspectRatio = h / w
-
             if aspectRatio > 1:
                 k = imgSize / h
                 wCal = math.ceil(k * w)
@@ -67,51 +53,38 @@ def preprocess_image(img):
                 imgResize = cv2.resize(imgCrop, (imgSize, hCal))
                 hGap = math.ceil((imgSize - hCal) / 2)
                 imgWhite[hGap:hCal + hGap, :] = imgResize
-
             return imgWhite, img
     return None, img
 
+@app.route('/process_image', methods=['POST'])
+def process_image():
+    data = request.get_json()
+    image_data = data['imageData']
+    expressions = data['Expressions']
 
-def generate_frames():
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Iniciar la captura de video al inicio de la función
-    while True:
-        success, img = cap.read()
-        if not success:
-            break
+    # Decodificar la imagen desde base64
+    encoded_data = image_data.split(',')[1]
+    nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        img_preprocessed, img_with_bbox = preprocess_image(img)
-        if img_preprocessed is not None or classifier is None:
-            prediction, index = classifier.getPrediction(img_preprocessed)
-            global sign_selected, signs
-            sign = str(sign_selected)
-            accuracy = float(np.max(prediction)) * 100
+    img_preprocessed, _ = preprocess_image(img)
+    if img_preprocessed is not None:
+        prediction, index = classifier.getPrediction(img_preprocessed)
+        accuracy = float(np.max(prediction)) * 100
+        sign = labels[index]
+        return jsonify({
+            'sign': sign,
+            'accuracy': accuracy
+        })
+    return jsonify({
+        'sign': None,
+        'accuracy': 0
+    })
 
-            # Dibujar predicción y rectángulo en la imagen original
-            hands, img = detector.findHands(img, draw=False)
-            print(signs[str(sign_selected)])
-            if hands and index == signs[str(sign_selected)]['index'] and accuracy > 97:
-                print(prediction)
-                hand = hands[0]
-                x, y, w, h = hand['bbox']
-                cv2.putText(img, sign, (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
-                cv2.rectangle(img, (x - offset, y - offset), (x + w + offset, y + h + offset), (255, 0, 255), 2)
-
-        ret, buffer = cv2.imencode('.jpg', img)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-        # Liberar la captura de video al salir de la función
-    cap.release()
-
-
-# Vista sin diseño
 @app.route('/camera')
 def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return render_template('index.html')
 
-
-# Vista con diseño
 @app.route('/expressions')
 def index():
     global classifier, sign_selected
@@ -119,7 +92,6 @@ def index():
     sign_selected = camera_id
     classifier = load_model(camera_id)
     return render_template('index.html')
-
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0')

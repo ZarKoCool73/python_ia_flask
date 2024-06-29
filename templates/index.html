@@ -3,84 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Sign Detection</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-        }
-        #video-frame {
-            border: 2px solid #000;
-        }
-        #upload-section {
-            margin-top: 20px;
-        }
-        #output {
-            margin-top: 20px;
-        }
-        .hidden {
-            display: none;
-        }
-        .title{
-            margin: 0;
-            padding: 2rem;
-            color: white;
-            background: linear-gradient(to bottom, #333, #111);
-        }
-        .m-0{
-            margin: 0!important;
-        }
-    </style>
+    <title>WebRTC App</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="m-0">
-    <h1 class="title">Hand Sign Detection</h1>
-    <div>
-        <h2>Real-time Video Feed</h2>
-        <img id="video-frame" src="/camera" alt="Video Feed">
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container_video {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        height: max-content;
+        align-items: center;
+    }
+
+    .container_video > video {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .camera {
+        background: linear-gradient(to bottom, #333, #111);
+        height: 100%;
+        width: 60%;
+        display: flex;
+        justify-content: center;
+        padding: 30px;
+        border: 3px solid white;
+        border-radius: 30px;
+    }
+
+    .camera > video {
+        border-radius: 60px;
+        border: 10px solid black;
+    }
+
+    .camera_content {
+        background: linear-gradient(to bottom, #141212, #111);
+        padding: 40px;
+        border-radius: 30px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .results {
+        align-items: center;
+        padding: 30px;
+        margin-left: 20px;
+        border-radius: 30px;
+        min-width: 300px;
+        min-height: 300px;
+        background-color: darkgray;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .results > #title_result {
+        font-size: 40px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .results > #content_result {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        font-size: 250px;
+    }
+
+    .results > #accuracy_result {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        font-size: 80px;
+    }
+</style>
+<body>
+<div class="container_video">
+    <h1 id="title"></h1>
+    <div style="display: flex; flex-wrap: wrap; width: 100%; justify-content: center">
+        <div class="camera_content">
+            <div class="camera">
+                <video id="localVideo" autoplay></video>
+                <video id="remoteVideo" style="display: none" autoplay></video>
+            </div>
+            <canvas id="canvas" style="display:none;"></canvas>
+            <div id="detectedSign" style="display: none"></div>
+        </div>
+        <div class="results">
+            <h3 id="title_result"></h3>
+            <p id="content_result"></p>
+            <br>
+            <p id="accuracy_result"></p>
+        </div>
     </div>
-    <div id="upload-section" class="hidden">
-        <h2>Upload and Process Image</h2>
-        <input type="file" id="image-upload" accept="image/*">
-        <button id="upload-button">Upload and Process</button>
-    </div>
-    <div id="output" class="hidden">
-        <h2>Processed Image</h2>
-        <img id="processed-image" alt="Processed Image">
-        <p id="sign-output"></p>
-        <p id="accuracy-output"></p>
-    </div>
+    {#
+    <button id="captureButton" class="button">Capturar Imagen</button>
+#}
 
     <script>
-        document.getElementById('upload-button').addEventListener('click', function () {
-            const fileInput = document.getElementById('image-upload');
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const formData = new FormData();
-                formData.append('image', file);
+        const localVideo = document.getElementById('localVideo');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const title = document.getElementById("title");
+
+        if (window.location.href.includes('expressions')) {
+            title.innerText = "Módulo de expresión";
+        } else {
+            title.innerText = "Módulo de comprensión";
+        }
+
+        async function setupWebRTC() {
+            const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+            localVideo.srcObject = stream;
+
+            function captureAndProcessImage() {
+                canvas.width = localVideo.videoWidth;
+                canvas.height = localVideo.videoHeight;
+                context.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
+
+                const imgData = canvas.toDataURL('image/jpeg');
+                const expressions = window.location.href.includes('expressions');
 
                 fetch('/process_image', {
                     method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message) {
-                        alert(data.message);
-                    } else {
-                        document.getElementById('processed-image').src = data.image;
-                        document.getElementById('sign-output').textContent = `Sign: ${data.sign}`;
-                        document.getElementById('accuracy-output').textContent = `Accuracy: ${data.accuracy.toFixed(2)}%`;
-                        document.getElementById('output').classList.remove('hidden');
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        imageData: imgData,
+                        Expressions: expressions
+                    })
+                }).then(res => {
+                    if (!res.ok) {
+                        throw new Error('Network response was not ok');
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
+                    return res.json();
+                }).then(data => {
+                    const accuracyPercentage = data.accuracy ? `Precisión: ${data.accuracy.toFixed(2)}%` : '';
+                    if (data.accuracy > 60) {
+                        document.getElementById("title_result").innerText = "Interpretación del signo";
+                        document.getElementById("content_result").innerText = `${data.sign}`;
+                        document.getElementById("accuracy_result").innerText = accuracyPercentage;
+                    }
+                }).catch(error => {
+                    console.error('Error en la captura y procesamiento de la imagen:', error);
                 });
-            } else {
-                alert('Please select an image file.');
             }
-        });
+
+            setInterval(captureAndProcessImage, 1000);
+        }
+
+        setupWebRTC().catch(error => console.error('Error en la configuración de WebRTC:', error));
     </script>
 </body>
 </html>
