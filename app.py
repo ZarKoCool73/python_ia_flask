@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 import math
-from flask import Flask, request, jsonify, render_template,Response
+from flask import Flask, request, jsonify, render_template, Response
 import base64
 from cvzone.HandTrackingModule import HandDetector
 from cvzone.ClassificationModule import Classifier
@@ -22,6 +22,7 @@ signs = {
 labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 sign_selected = None
 
+
 def load_model(sign_type):
     model_path = os.path.join(current_dir, f"Model/keras_model_{sign_type}.h5")
     labels_path = os.path.join(current_dir, f"Model/labels_{sign_type}.txt")
@@ -30,6 +31,7 @@ def load_model(sign_type):
     if not os.path.exists(labels_path):
         raise FileNotFoundError(f"No se encontró el archivo de etiquetas en {labels_path}")
     return Classifier(model_path, labels_path)
+
 
 def preprocess_image(img):
     hands, img = detector.findHands(img, draw=False)
@@ -56,6 +58,7 @@ def preprocess_image(img):
             return imgWhite, img
     return None, img
 
+
 @app.route('/process_image', methods=['POST'])
 def process_image():
     data = request.get_json()
@@ -76,9 +79,9 @@ def process_image():
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     except Exception as e:
         return jsonify({
-            'sign': None,
+            'sign': '-',
             'accuracy': 0,
-            'error': f'Error decoding image: {str(e)}'
+            'error': 'Seña no encontrada'
         }), 400
 
     img_preprocessed, _ = preprocess_image(img)
@@ -99,14 +102,16 @@ def process_image():
         })
     else:
         return jsonify({
-            'sign': None,
+            'sign': '-',
             'accuracy': 0,
-            'error': 'Image preprocessing failed'
+            'error': 'Seña no encontrada'
         }), 400
+
 
 @app.route('/camera')
 def video_feed():
     return render_template('index.html')
+
 
 @app.route('/expressions')
 def index():
@@ -115,6 +120,7 @@ def index():
     sign_selected = camera_id
     classifier = load_model(camera_id)
     return render_template('index.html')
+
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0')
