@@ -70,8 +70,16 @@ def process_image():
     img_preprocessed, _ = preprocess_image(img)
     if img_preprocessed is not None:
         prediction, index = classifier.getPrediction(img_preprocessed)
+        global signs, sign_selected
+        sign = '-'
         accuracy = float(np.max(prediction)) * 100
-        sign = labels[index]
+        print(accuracy)
+        if index == signs[str(sign_selected)]['index'] and accuracy > 95:
+            sign = sign_selected
+            accuracy = float(np.max(prediction)) * 100
+        else:
+            accuracy = 0
+
         return jsonify({
             'sign': sign,
             'accuracy': accuracy
