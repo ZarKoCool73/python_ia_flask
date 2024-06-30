@@ -3,11 +3,13 @@ import cv2
 import numpy as np
 import math
 from flask import Flask, request, jsonify, render_template, Response
+from flask_cors import CORS
 import base64
 from cvzone.HandTrackingModule import HandDetector
 from cvzone.ClassificationModule import Classifier
-
 app = Flask(__name__)
+CORS(app)
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 classifier = None
 offset = 20
@@ -121,6 +123,3 @@ def index():
     classifier = load_model(camera_id)
     return render_template('index.html')
 
-
-if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0')

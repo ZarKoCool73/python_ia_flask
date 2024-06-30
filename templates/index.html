@@ -110,18 +110,15 @@
     const canvas = document.getElementById('canvas');
     const context = canvas.getContext('2d');
     const title = document.getElementById("title");
-
     if (window.location.href.includes('expressions')) {
         title.innerText = "Módulo de expresión";
     } else {
         title.innerText = "Módulo de comprensión";
     }
-
     async function setupWebRTC() {
         const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
         localVideo.srcObject = stream;
     }
-
     function captureAndProcessImage() {
         canvas.width = localVideo.videoWidth;
         canvas.height = localVideo.videoHeight;
@@ -160,6 +157,5 @@
             document.getElementById("accuracy_result").innerText = `${error.message}`;
         });
     }
-
     setupWebRTC().catch(error => console.error('Error en la configuración de WebRTC:', error));
 </script>
