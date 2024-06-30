@@ -123,3 +123,5 @@ def index():
     classifier = load_model(camera_id)
     return render_template('index.html')
 
+if __name__ == "__main__":
+    app.run(debug=False, host='0.0.0.0')
