@@ -59,13 +59,27 @@ def preprocess_image(img):
 @app.route('/process_image', methods=['POST'])
 def process_image():
     data = request.get_json()
-    image_data = data['imageData']
-    expressions = data['Expressions']
+    image_data = data.get('imageData')
+    expressions = data.get('Expressions')
 
-    # Decodificar la imagen desde base64
-    encoded_data = image_data.split(',')[1]
-    nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if not image_data:
+        return jsonify({
+            'sign': None,
+            'accuracy': 0,
+            'error': 'No image data provided'
+        }), 400
+
+    try:
+        # Decodificar la imagen desde base64
+        encoded_data = image_data.split(',')[1]
+        nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    except Exception as e:
+        return jsonify({
+            'sign': None,
+            'accuracy': 0,
+            'error': f'Error decoding image: {str(e)}'
+        }), 400
 
     img_preprocessed, _ = preprocess_image(img)
     if img_preprocessed is not None:
@@ -73,10 +87,9 @@ def process_image():
         global signs, sign_selected
         sign = '-'
         accuracy = float(np.max(prediction)) * 100
-        print(accuracy)
-        if index == signs[str(sign_selected)]['index'] and accuracy > 95:
+
+        if index == signs.get(str(sign_selected), {}).get('index') and accuracy > 95:
             sign = sign_selected
-            accuracy = float(np.max(prediction)) * 100
         else:
             accuracy = 0
 
@@ -84,10 +97,12 @@ def process_image():
             'sign': sign,
             'accuracy': accuracy
         })
-    return jsonify({
-        'sign': None,
-        'accuracy': 0
-    })
+    else:
+        return jsonify({
+            'sign': None,
+            'accuracy': 0,
+            'error': 'Image preprocessing failed'
+        }), 400
 
 @app.route('/camera')
 def video_feed():
