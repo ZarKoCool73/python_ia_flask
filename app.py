@@ -7,6 +7,7 @@ from flask_cors import CORS
 import base64
 from cvzone.HandTrackingModule import HandDetector
 from cvzone.ClassificationModule import Classifier
+
 app = Flask(__name__)
 CORS(app)
 
@@ -63,7 +64,7 @@ def preprocess_image(img):
 
 @app.route('/process_image', methods=['POST'])
 def process_image():
-    global classifier, sign_selected
+    global classifier, sign_selected, signs
     data = request.get_json()
     image_data = data.get('imageData')
     expressions = data.get('Expressions')
@@ -91,7 +92,6 @@ def process_image():
     img_preprocessed, _ = preprocess_image(img)
     if img_preprocessed is not None:
         prediction, index = classifier.getPrediction(img_preprocessed)
-        global signs, sign_selected
         sign = '-'
         accuracy = float(np.max(prediction)) * 100
 
@@ -124,6 +124,7 @@ def index():
     sign_selected = camera_id
     classifier = load_model(camera_id)
     return render_template('index.html')
+
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0')
