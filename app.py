@@ -63,10 +63,12 @@ def preprocess_image(img):
 
 @app.route('/process_image', methods=['POST'])
 def process_image():
+    global classifier, sign_selected
     data = request.get_json()
     image_data = data.get('imageData')
     expressions = data.get('Expressions')
-
+    sign_selected = expressions
+    classifier = load_model(sign_selected)
     if not image_data:
         return jsonify({
             'sign': None,
