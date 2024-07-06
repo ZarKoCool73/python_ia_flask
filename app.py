@@ -17,27 +17,26 @@ offset = 20
 imgSize = 250
 detector = HandDetector(maxHands=1)
 signs = {
-    '0': {'index': 1}, '1': {'index': 1}, '2': {'index': 1}, '3': {'index': 1}, '4': {'index': 1}, '5': {'index': 1},
-    '6': {'index': 1}, '7': {'index': 1}, '8': {'index': 1}, '9': {'index': 1}, '10': {'index': 1}, 'A': {'index': 1},
-    'B': {'index': 1}, 'C': {'index': 1}, 'D': {'index': 1}, 'E': {'index': 1}, 'F': {'index': 1}, 'G': {'index': 1},
-    'H': {'index': 1}, 'I': {'index': 1}, 'J': {'index': 1}, 'K': {'index': 1}, 'L': {'index': 1}, 'M': {'index': 1},
-    'N': {'index': 1}, 'O': {'index': 1}, 'P': {'index': 1}, 'Q': {'index': 1}, 'R': {'index': 1}, 'S': {'index': 1},
-    'T': {'index': 1}, 'U': {'index': 1}, 'V': {'index': 1}, 'W': {'index': 1}, 'X': {'index': 1}, 'Y': {'index': 1},
-    'Z': {'index': 1}
+    '0': {'index': 1, 'clasifier': None }, '1': {'index': 1, 'clasifier': None}, '2': {'index': 1, 'clasifier': None}, '3': {'index': 1, 'clasifier': None}, '4': {'index': 1, 'clasifier': None}, '5': {'index': 1, 'clasifier': None},
+    '6': {'index': 1, 'clasifier': None}, '7': {'index': 1, 'clasifier': None}, '8': {'index': 1, 'clasifier': None}, '9': {'index': 1, 'clasifier': None}, '10': {'index': 1, 'clasifier': None}, 'A': {'index': 1, 'clasifier': None},
+    'B': {'index': 1, 'clasifier': None}, 'C': {'index': 1, 'clasifier': None}, 'D': {'index': 1, 'clasifier': None}, 'E': {'index': 1, 'clasifier': None}, 'F': {'index': 1, 'clasifier': None}, 'G': {'index': 1, 'clasifier': None},
+    'H': {'index': 1, 'clasifier': None}, 'I': {'index': 1, 'clasifier': None}, 'J': {'index': 1, 'clasifier': None}, 'K': {'index': 1, 'clasifier': None}, 'L': {'index': 1, 'clasifier': None}, 'M': {'index': 1, 'clasifier': None},
+    'N': {'index': 1, 'clasifier': None}, 'O': {'index': 1, 'clasifier': None}, 'P': {'index': 1, 'clasifier': None}, 'Q': {'index': 1, 'clasifier': None}, 'R': {'index': 1, 'clasifier': None}, 'S': {'index': 1, 'clasifier': None},
+    'T': {'index': 1, 'clasifier': None}, 'U': {'index': 1, 'clasifier': None}, 'V': {'index': 1, 'clasifier': None}, 'W': {'index': 1, 'clasifier': None}, 'X': {'index': 1, 'clasifier': None}, 'Y': {'index': 1, 'clasifier': None},
+    'Z': {'index': 1, 'clasifier': None}
 }
-labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
-          "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 sign_selected = None
 
 
 def load_model(sign_type):
+    global signs
     model_path = os.path.join(current_dir, f"Model/keras_model_{sign_type}.h5")
     labels_path = os.path.join(current_dir, f"Model/labels_{sign_type}.txt")
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"No se encontró el archivo del modelo en {model_path}")
     if not os.path.exists(labels_path):
         raise FileNotFoundError(f"No se encontró el archivo de etiquetas en {labels_path}")
-    return Classifier(model_path, labels_path)
+    signs[sign_type]['clasifier'] = Classifier(model_path, labels_path)
 
 
 def preprocess_image(img):
@@ -74,7 +73,7 @@ def load_model_endpoint():
         return jsonify({'error': 'No sign type provided'}), 400
 
     try:
-        classifier = load_model(sign_type)
+        load_model(sign_type)
         sign_selected = sign_type
         return jsonify({'message': f'Model {sign_type} loaded successfully'})
     except FileNotFoundError as e:
@@ -86,6 +85,7 @@ def load_model_endpoint():
 @app.route('/process_image', methods=['POST'])
 def process_image():
     global classifier, sign_selected, signs
+    classifier = signs[sign_selected]['clasifier']
     if classifier is None:
         return jsonify({'error': 'Model not loaded'}), 400
 
