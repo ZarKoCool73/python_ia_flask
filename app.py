@@ -26,7 +26,7 @@ signs = {
     'Z': {'index': 1}
 }
 labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
-          "L", "M", "N", "0", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+          "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 sign_selected = None
 
 
@@ -66,14 +66,33 @@ def preprocess_image(img):
     return None, img
 
 
+@app.route('/load_model', methods=['GET'])
+def load_model_endpoint():
+    global classifier, sign_selected
+    sign_type = request.args.get('signType')
+    if not sign_type:
+        return jsonify({'error': 'No sign type provided'}), 400
+
+    try:
+        classifier = load_model(sign_type)
+        sign_selected = sign_type
+        return jsonify({'message': f'Model {sign_type} loaded successfully'})
+    except FileNotFoundError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': 'An error occurred while loading the model'}), 500
+
+
 @app.route('/process_image', methods=['POST'])
 def process_image():
     global classifier, sign_selected, signs
+    if classifier is None:
+        return jsonify({'error': 'Model not loaded'}), 400
+
     data = request.get_json()
     image_data = data.get('imageData')
     expressions = data.get('Expressions')
-    sign_selected = expressions
-    classifier = load_model(sign_selected)
+
     if not image_data:
         return jsonify({
             'sign': None,
@@ -114,11 +133,6 @@ def process_image():
             'accuracy': 0,
             'error': 'Seña no encontrada'
         }), 400
-
-
-@app.route('/camera')
-def video_feed():
-    return render_template('index.html')
 
 
 @app.route('/expressions')
