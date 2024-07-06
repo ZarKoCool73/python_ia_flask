@@ -17,10 +17,10 @@ offset = 20
 imgSize = 250
 detector = HandDetector(maxHands=1)
 signs = {
-    '0': {'index': 0}, '1': {'index': 2}, '2': {'index': 2},
-    '3': {'index': 2}, '4': {'index': 2}, '5': {'index': 2},
-    '6': {'index': 2}, '7': {'index': 2}, '8': {'index': 2},
-    '9': {'index': 2}, '10': {'index': 2}
+    '0': {'index': 1}, '1': {'index': 1}, '2': {'index': 1},
+    '3': {'index': 1}, '4': {'index': 1}, '5': {'index': 1},
+    '6': {'index': 1}, '7': {'index': 1}, '8': {'index': 1},
+    '9': {'index': 1}, '10': {'index': 1}
 }
 labels = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 sign_selected = None

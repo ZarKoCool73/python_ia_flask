@@ -115,18 +115,20 @@
     } else {
         title.innerText = "Módulo de comprensión";
     }
+
     async function setupWebRTC() {
         const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
         localVideo.srcObject = stream;
     }
+
     function captureAndProcessImage() {
         canvas.width = localVideo.videoWidth;
         canvas.height = localVideo.videoHeight;
         context.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
 
         const imgData = canvas.toDataURL('image/jpeg');
-        const expressions = window.location.href.includes('expressions');
-
+        const urlObj = new URL(window.location);
+        const cameraId = urlObj.searchParams.get('camera_id');
         fetch('/process_image', {
             method: 'POST',
             headers: {
@@ -134,7 +136,7 @@
             },
             body: JSON.stringify({
                 imageData: imgData,
-                Expressions: expressions
+                Expressions: cameraId
             })
         }).then(res => {
             return res.json().then(data => {
@@ -157,5 +159,6 @@
             document.getElementById("accuracy_result").innerText = `${error.message}`;
         });
     }
+
     setupWebRTC().catch(error => console.error('Error en la configuración de WebRTC:', error));
 </script>
