@@ -17,12 +17,18 @@ offset = 20
 imgSize = 250
 detector = HandDetector(maxHands=1)
 signs = {
-    '0': {'index': 1, 'clasifier': None }, '1': {'index': 1, 'clasifier': None}, '2': {'index': 1, 'clasifier': None}, '3': {'index': 1, 'clasifier': None}, '4': {'index': 1, 'clasifier': None}, '5': {'index': 1, 'clasifier': None},
-    '6': {'index': 1, 'clasifier': None}, '7': {'index': 1, 'clasifier': None}, '8': {'index': 1, 'clasifier': None}, '9': {'index': 1, 'clasifier': None}, '10': {'index': 1, 'clasifier': None}, 'A': {'index': 1, 'clasifier': None},
-    'B': {'index': 1, 'clasifier': None}, 'C': {'index': 1, 'clasifier': None}, 'D': {'index': 1, 'clasifier': None}, 'E': {'index': 1, 'clasifier': None}, 'F': {'index': 1, 'clasifier': None}, 'G': {'index': 1, 'clasifier': None},
-    'H': {'index': 1, 'clasifier': None}, 'I': {'index': 1, 'clasifier': None}, 'J': {'index': 1, 'clasifier': None}, 'K': {'index': 1, 'clasifier': None}, 'L': {'index': 1, 'clasifier': None}, 'M': {'index': 1, 'clasifier': None},
-    'N': {'index': 1, 'clasifier': None}, 'O': {'index': 1, 'clasifier': None}, 'P': {'index': 1, 'clasifier': None}, 'Q': {'index': 1, 'clasifier': None}, 'R': {'index': 1, 'clasifier': None}, 'S': {'index': 1, 'clasifier': None},
-    'T': {'index': 1, 'clasifier': None}, 'U': {'index': 1, 'clasifier': None}, 'V': {'index': 1, 'clasifier': None}, 'W': {'index': 1, 'clasifier': None}, 'X': {'index': 1, 'clasifier': None}, 'Y': {'index': 1, 'clasifier': None},
+    '0': {'index': 1, 'clasifier': None}, '1': {'index': 1, 'clasifier': None}, '2': {'index': 1, 'clasifier': None},
+    '3': {'index': 1, 'clasifier': None}, '4': {'index': 1, 'clasifier': None}, '5': {'index': 1, 'clasifier': None},
+    '6': {'index': 1, 'clasifier': None}, '7': {'index': 1, 'clasifier': None}, '8': {'index': 1, 'clasifier': None},
+    '9': {'index': 1, 'clasifier': None}, '10': {'index': 1, 'clasifier': None}, 'A': {'index': 1, 'clasifier': None},
+    'B': {'index': 1, 'clasifier': None}, 'C': {'index': 1, 'clasifier': None}, 'D': {'index': 1, 'clasifier': None},
+    'E': {'index': 1, 'clasifier': None}, 'F': {'index': 1, 'clasifier': None}, 'G': {'index': 1, 'clasifier': None},
+    'H': {'index': 1, 'clasifier': None}, 'I': {'index': 1, 'clasifier': None}, 'J': {'index': 1, 'clasifier': None},
+    'K': {'index': 1, 'clasifier': None}, 'L': {'index': 1, 'clasifier': None}, 'M': {'index': 1, 'clasifier': None},
+    'N': {'index': 1, 'clasifier': None}, 'O': {'index': 1, 'clasifier': None}, 'P': {'index': 1, 'clasifier': None},
+    'Q': {'index': 1, 'clasifier': None}, 'R': {'index': 1, 'clasifier': None}, 'S': {'index': 1, 'clasifier': None},
+    'T': {'index': 1, 'clasifier': None}, 'U': {'index': 1, 'clasifier': None}, 'V': {'index': 1, 'clasifier': None},
+    'W': {'index': 1, 'clasifier': None}, 'X': {'index': 1, 'clasifier': None}, 'Y': {'index': 1, 'clasifier': None},
     'Z': {'index': 1, 'clasifier': None}
 }
 sign_selected = None
@@ -120,13 +126,17 @@ def process_image():
 
         if index == signs.get(str(sign_selected), {}).get('index') and accuracy > 95:
             sign = sign_selected
+            return jsonify({
+                'sign': sign,
+                'accuracy': accuracy
+            }), 200
         else:
             accuracy = 0
-
-        return jsonify({
-            'sign': sign,
-            'accuracy': accuracy
-        })
+            return jsonify({
+                'sign': sign,
+                'accuracy': accuracy,
+                'error': 'Seña no encontrada'
+            }), 400
     else:
         return jsonify({
             'sign': '-',
