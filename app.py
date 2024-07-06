@@ -42,7 +42,8 @@ def load_model(sign_type):
         raise FileNotFoundError(f"No se encontró el archivo del modelo en {model_path}")
     if not os.path.exists(labels_path):
         raise FileNotFoundError(f"No se encontró el archivo de etiquetas en {labels_path}")
-    signs[sign_type]['clasifier'] = Classifier(model_path, labels_path)
+    if signs[sign_type]['clasifier'] is None:
+        signs[sign_type]['clasifier'] = Classifier(model_path, labels_path)
 
 
 def preprocess_image(img):
