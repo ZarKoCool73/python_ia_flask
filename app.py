@@ -36,8 +36,8 @@ sign_selected = None
 
 def load_model(sign_type):
     global signs
-    model_path = os.path.join(current_dir, f"Model/keras_model_{sign_type}.h5")
-    labels_path = os.path.join(current_dir, f"Model/labels_{sign_type}.txt")
+    model_path = os.path.join(current_dir, f"Modelv2/keras_model_{sign_type}.h5")
+    labels_path = os.path.join(current_dir, f"Modelv2/labels_{sign_type}.txt")
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"No se encontró el archivo del modelo en {model_path}")
     if not os.path.exists(labels_path):
