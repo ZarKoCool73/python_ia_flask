@@ -9,13 +9,13 @@ import cv2 as cv
 import numpy as np
 import mediapipe as mp
 from flask import Flask, request, jsonify, render_template
-
+from flask_cors import CORS
 from utils import CvFpsCalc
 from model.keypoint_classifier.keypoint_classifier import KeyPointClassifier
 from model.point_history_classifier.point_history_classifier import PointHistoryClassifier
 
 app = Flask(__name__)
-
+CORS(app)
 @app.route('/')
 def index():
     return render_template('index.html')
