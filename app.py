@@ -193,4 +193,4 @@ def pre_process_point_history(image, point_history):
     return temp_point_history
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=False, host='0.0.0.0')
