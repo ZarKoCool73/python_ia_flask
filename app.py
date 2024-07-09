@@ -27,18 +27,20 @@ def predict():
         data = request.get_json()
         image_data = data['image'].split(",")[1]  # Remove the data URL prefix
         image = Image.open(BytesIO(base64.b64decode(image_data)))
-        image = np.array(image)
+        image_np = np.array(image)
 
         # Convert RGB to BGR as OpenCV expects images in BGR format
-        image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
+        image_np = cv.cvtColor(image_np, cv.COLOR_RGB2BGR)
 
         # Process the image and get predictions
-        predictions = process_image(image)
+        predictions = process_image(image_np)
 
         return jsonify(predictions)
     except Exception as e:
         print(f"Error during prediction: {e}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        image.close()  # Asegurarse de liberar el recurso de la imagen PIL
 
 def process_image(image):
     # Configuration
@@ -124,6 +126,7 @@ def process_image(image):
         point_history.append([0, 0])
 
     hands.close()  # Liberar recursos de Mediapipe al final
+    cv.destroyAllWindows()  # Liberar recursos de OpenCV al final
     return predictions
 
 def calc_bounding_rect(image, landmarks):
