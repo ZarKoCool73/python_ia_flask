@@ -35,6 +35,9 @@ def predict():
         # Process the image and get predictions
         predictions = process_image(image_np)
 
+        if not predictions:
+            return jsonify({"error": "No hand sign detected"}), 400
+
         return jsonify(predictions)
     except Exception as e:
         print(f"Error during prediction: {e}")
@@ -135,6 +138,11 @@ def process_image(image):
 
     hands.close()  # Liberar recursos de Mediapipe al final
     cv.destroyAllWindows()  # Liberar recursos de OpenCV al final
+
+    # Return None if no hand landmarks are detected
+    if not predictions:
+        return None
+
     return predictions
 
 def calc_bounding_rect(image, landmarks):
