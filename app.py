@@ -123,6 +123,7 @@ def process_image(image):
     else:
         point_history.append([0, 0])
 
+    hands.close()  # Liberar recursos de Mediapipe al final
     return predictions
 
 def calc_bounding_rect(image, landmarks):
