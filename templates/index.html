@@ -29,22 +29,28 @@
         captureButton.addEventListener('click', () => {
             const context = canvas.getContext('2d');
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(blob => {
-                const formData = new FormData();
-                formData.append('image', blob, 'capture.jpg');
 
-                fetch('/predict', {
-                    method: 'POST',
-                    body: formData,
-                })
-                .then(response => response.json())
-                .then(data => {
+            const dataURL = canvas.toDataURL('image/jpeg');
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: dataURL }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.hand_sign && data.finger_gesture) {
                     resultText.textContent = `Hand Sign: ${data.hand_sign}, Finger Gesture: ${data.finger_gesture}`;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-            }, 'image/jpeg');
+                } else {
+                    resultText.textContent = 'No prediction';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultText.textContent = 'Prediction error';
+            });
         });
     </script>
 </body>

@@ -1,14 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import csv
+import base64
+from flask import Flask, request, jsonify, render_template
+import cv2 as cv
+import numpy as np
+from io import BytesIO
+from PIL import Image
 import copy
 import itertools
 from collections import Counter, deque
-
-import cv2 as cv
-import numpy as np
+import csv
 import mediapipe as mp
-from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from utils import CvFpsCalc
 from model.keypoint_classifier.keypoint_classifier import KeyPointClassifier
@@ -16,20 +16,29 @@ from model.point_history_classifier.point_history_classifier import PointHistory
 
 app = Flask(__name__)
 CORS(app)
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    data = request.files['image'].read()
-    image = np.frombuffer(data, np.uint8)
-    image = cv.imdecode(image, cv.IMREAD_COLOR)
+    try:
+        data = request.get_json()
+        image_data = data['image'].split(",")[1]  # Remove the data URL prefix
+        image = Image.open(BytesIO(base64.b64decode(image_data)))
+        image = np.array(image)
 
-    # Process the image and get predictions
-    predictions = process_image(image)
+        # Convert RGB to BGR as OpenCV expects images in BGR format
+        image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
 
-    return jsonify(predictions)
+        # Process the image and get predictions
+        predictions = process_image(image)
+
+        return jsonify(predictions)
+    except Exception as e:
+        print(f"Error during prediction: {e}")
+        return jsonify({"error": str(e)}), 500
 
 def process_image(image):
     # Configuration
