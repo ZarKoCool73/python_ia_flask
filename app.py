@@ -1,159 +1,196 @@
-import os
-import cv2
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import csv
+import copy
+import itertools
+from collections import Counter, deque
+
+import cv2 as cv
 import numpy as np
-import math
-from flask import Flask, request, jsonify, render_template, Response
-from flask_cors import CORS
-import base64
-from cvzone.HandTrackingModule import HandDetector
-from cvzone.ClassificationModule import Classifier
+import mediapipe as mp
+from flask import Flask, request, jsonify, render_template
+
+from utils import CvFpsCalc
+from model.keypoint_classifier.keypoint_classifier import KeyPointClassifier
+from model.point_history_classifier.point_history_classifier import PointHistoryClassifier
 
 app = Flask(__name__)
-CORS(app)
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-classifier = None
-offset = 20
-imgSize = 250
-detector = HandDetector(maxHands=1)
-signs = {
-    '0': {'index': 1, 'clasifier': None}, '1': {'index': 1, 'clasifier': None}, '2': {'index': 1, 'clasifier': None},
-    '3': {'index': 1, 'clasifier': None}, '4': {'index': 1, 'clasifier': None}, '5': {'index': 1, 'clasifier': None},
-    '6': {'index': 1, 'clasifier': None}, '7': {'index': 1, 'clasifier': None}, '8': {'index': 1, 'clasifier': None},
-    '9': {'index': 1, 'clasifier': None}, '10': {'index': 1, 'clasifier': None}, 'A': {'index': 1, 'clasifier': None},
-    'B': {'index': 1, 'clasifier': None}, 'C': {'index': 1, 'clasifier': None}, 'D': {'index': 1, 'clasifier': None},
-    'E': {'index': 1, 'clasifier': None}, 'F': {'index': 1, 'clasifier': None}, 'G': {'index': 1, 'clasifier': None},
-    'H': {'index': 1, 'clasifier': None}, 'I': {'index': 1, 'clasifier': None}, 'J': {'index': 1, 'clasifier': None},
-    'K': {'index': 1, 'clasifier': None}, 'L': {'index': 1, 'clasifier': None}, 'M': {'index': 1, 'clasifier': None},
-    'N': {'index': 1, 'clasifier': None}, 'O': {'index': 1, 'clasifier': None}, 'P': {'index': 1, 'clasifier': None},
-    'Q': {'index': 1, 'clasifier': None}, 'R': {'index': 1, 'clasifier': None}, 'S': {'index': 1, 'clasifier': None},
-    'T': {'index': 1, 'clasifier': None}, 'U': {'index': 1, 'clasifier': None}, 'V': {'index': 1, 'clasifier': None},
-    'W': {'index': 1, 'clasifier': None}, 'X': {'index': 1, 'clasifier': None}, 'Y': {'index': 1, 'clasifier': None},
-    'Z': {'index': 1, 'clasifier': None}
-}
-sign_selected = None
-
-
-def load_model(sign_type):
-    global signs
-    model_path = os.path.join(current_dir, f"Model/keras_model_{sign_type}.h5")
-    labels_path = os.path.join(current_dir, f"Model/labels_{sign_type}.txt")
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"No se encontró el archivo del modelo en {model_path}")
-    if not os.path.exists(labels_path):
-        raise FileNotFoundError(f"No se encontró el archivo de etiquetas en {labels_path}")
-    if signs[sign_type]['clasifier'] is None:
-        signs[sign_type]['clasifier'] = Classifier(model_path, labels_path)
-
-
-def preprocess_image(img):
-    hands, img = detector.findHands(img, draw=False)
-    if hands:
-        hand = hands[0]
-        x, y, w, h = hand['bbox']
-        imgWhite = np.ones((imgSize, imgSize, 3), np.uint8) * 255
-        imgCrop = img[y - offset:y + h + offset, x - offset:x + w + offset]
-
-        if imgCrop.shape[0] > 0 and imgCrop.shape[1] > 0:
-            aspectRatio = h / w
-            if aspectRatio > 1:
-                k = imgSize / h
-                wCal = math.ceil(k * w)
-                imgResize = cv2.resize(imgCrop, (wCal, imgSize))
-                wGap = math.ceil((imgSize - wCal) / 2)
-                imgWhite[:, wGap:wCal + wGap] = imgResize
-            else:
-                k = imgSize / w
-                hCal = math.ceil(k * h)
-                imgResize = cv2.resize(imgCrop, (imgSize, hCal))
-                hGap = math.ceil((imgSize - hCal) / 2)
-                imgWhite[hGap:hCal + hGap, :] = imgResize
-            return imgWhite, img
-    return None, img
-
-
-@app.route('/load_model', methods=['GET'])
-def load_model_endpoint():
-    global classifier, sign_selected
-    sign_type = request.args.get('signType')
-    if not sign_type:
-        return jsonify({'error': 'No sign type provided'}), 400
-
-    try:
-        load_model(sign_type)
-        sign_selected = sign_type
-        return jsonify({'message': f'Model {sign_type} loaded successfully'})
-    except FileNotFoundError as e:
-        return jsonify({'error': str(e)}), 404
-    except Exception as e:
-        return jsonify({'error': 'An error occurred while loading the model'}), 500
-
-
-@app.route('/process_image', methods=['POST'])
-def process_image():
-    global classifier, sign_selected, signs
-    classifier = signs[sign_selected]['clasifier']
-    if classifier is None:
-        return jsonify({'error': 'Model not loaded'}), 400
-
-    data = request.get_json()
-    image_data = data.get('imageData')
-    expressions = data.get('Expressions')
-
-    if not image_data:
-        return jsonify({
-            'sign': None,
-            'accuracy': 0,
-            'error': 'No image data provided'
-        }), 400
-
-    try:
-        # Decodificar la imagen desde base64
-        encoded_data = image_data.split(',')[1]
-        nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    except Exception as e:
-        return jsonify({
-            'sign': '-',
-            'accuracy': 0,
-            'error': 'Seña no encontrada'
-        }), 400
-
-    img_preprocessed, _ = preprocess_image(img)
-    if img_preprocessed is not None:
-        prediction, index = classifier.getPrediction(img_preprocessed)
-        sign = '-'
-        accuracy = float(np.max(prediction)) * 100
-
-        if index == signs.get(str(sign_selected), {}).get('index') and accuracy > 95:
-            sign = sign_selected
-            return jsonify({
-                'sign': sign,
-                'accuracy': accuracy
-            }), 200
-        else:
-            accuracy = 0
-            return jsonify({
-                'sign': sign,
-                'accuracy': accuracy,
-                'error': 'Seña no encontrada'
-            }), 400
-    else:
-        return jsonify({
-            'sign': '-',
-            'accuracy': 0,
-            'error': 'Seña no encontrada'
-        }), 400
-
-
-@app.route('/expressions')
+@app.route('/')
 def index():
-    global classifier, sign_selected
-    camera_id = request.args.get('camera_id', default=0, type=str)
-    sign_selected = camera_id
-    classifier = load_model(camera_id)
     return render_template('index.html')
 
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.files['image'].read()
+    image = np.frombuffer(data, np.uint8)
+    image = cv.imdecode(image, cv.IMREAD_COLOR)
 
-if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0')
+    # Process the image and get predictions
+    predictions = process_image(image)
+
+    return jsonify(predictions)
+
+def process_image(image):
+    # Configuration
+    use_static_image_mode = False
+    min_detection_confidence = 0.7
+    min_tracking_confidence = 0.5
+    use_brect = True
+
+    # Model load
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(
+        static_image_mode=use_static_image_mode,
+        max_num_hands=1,
+        min_detection_confidence=min_detection_confidence,
+        min_tracking_confidence=min_tracking_confidence,
+    )
+
+    keypoint_classifier = KeyPointClassifier()
+    point_history_classifier = PointHistoryClassifier()
+
+    # Read labels
+    with open('model/keypoint_classifier/keypoint_classifier_label.csv', encoding='utf-8-sig') as f:
+        keypoint_classifier_labels = csv.reader(f)
+        keypoint_classifier_labels = [row[0] for row in keypoint_classifier_labels]
+    with open('model/point_history_classifier/point_history_classifier_label.csv', encoding='utf-8-sig') as f:
+        point_history_classifier_labels = csv.reader(f)
+        point_history_classifier_labels = [row[0] for row in point_history_classifier_labels]
+
+    # Coordinate history
+    history_length = 16
+    point_history = deque(maxlen=history_length)
+
+    # Finger gesture history
+    finger_gesture_history = deque(maxlen=history_length)
+
+    # Flip the image horizontally for a later selfie-view display
+    image = cv.flip(image, 1)
+    debug_image = copy.deepcopy(image)
+
+    # Convert the BGR image to RGB before processing.
+    image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+    image.flags.writeable = False
+    results = hands.process(image)
+    image.flags.writeable = True
+
+    predictions = {}
+
+    if results.multi_hand_landmarks is not None:
+        for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+            # Bounding box calculation
+            brect = calc_bounding_rect(debug_image, hand_landmarks)
+            # Landmark calculation
+            landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+
+            # Conversion to relative coordinates / normalized coordinates
+            pre_processed_landmark_list = pre_process_landmark(landmark_list)
+            pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
+
+            # Hand sign classification
+            hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+            if hand_sign_id == 2:  # Point gesture
+                point_history.append(landmark_list[8])
+            else:
+                point_history.append([0, 0])
+
+            # Finger gesture classification
+            finger_gesture_id = 0
+            point_history_len = len(pre_processed_point_history_list)
+            if point_history_len == (history_length * 2):
+                finger_gesture_id = point_history_classifier(pre_processed_point_history_list)
+
+            # Calculates the gesture IDs in the latest detection
+            finger_gesture_history.append(finger_gesture_id)
+            most_common_fg_id = Counter(finger_gesture_history).most_common()
+
+            predictions = {
+                "hand_sign": keypoint_classifier_labels[hand_sign_id],
+                "finger_gesture": point_history_classifier_labels[most_common_fg_id[0][0]]
+            }
+            print(predictions)
+    else:
+        point_history.append([0, 0])
+
+    return predictions
+
+def calc_bounding_rect(image, landmarks):
+    image_width, image_height = image.shape[1], image.shape[0]
+
+    landmark_array = np.empty((0, 2), int)
+
+    for _, landmark in enumerate(landmarks.landmark):
+        landmark_x = min(int(landmark.x * image_width), image_width - 1)
+        landmark_y = min(int(landmark.y * image_height), image_height - 1)
+
+        landmark_point = [np.array((landmark_x, landmark_y))]
+
+        landmark_array = np.append(landmark_array, landmark_point, axis=0)
+
+    x, y, w, h = cv.boundingRect(landmark_array)
+
+    return [x, y, x + w, y + h]
+
+def calc_landmark_list(image, landmarks):
+    image_width, image_height = image.shape[1], image.shape[0]
+
+    landmark_point = []
+
+    # Keypoint
+    for _, landmark in enumerate(landmarks.landmark):
+        landmark_x = min(int(landmark.x * image_width), image_width - 1)
+        landmark_y = min(int(landmark.y * image_height), image_height - 1)
+        # landmark_z = landmark.z
+
+        landmark_point.append([landmark_x, landmark_y])
+
+    return landmark_point
+
+def pre_process_landmark(landmark_list):
+    temp_landmark_list = copy.deepcopy(landmark_list)
+
+    # Convert to relative coordinates
+    base_x, base_y = 0, 0
+    for index, landmark_point in enumerate(temp_landmark_list):
+        if index == 0:
+            base_x, base_y = landmark_point[0], landmark_point[1]
+
+        temp_landmark_list[index][0] = temp_landmark_list[index][0] - base_x
+        temp_landmark_list[index][1] = temp_landmark_list[index][1] - base_y
+
+    # Convert to a one-dimensional list
+    temp_landmark_list = list(itertools.chain.from_iterable(temp_landmark_list))
+
+    # Normalization
+    max_value = max(list(map(abs, temp_landmark_list)))
+
+    def normalize_(n):
+        return n / max_value
+
+    temp_landmark_list = list(map(normalize_, temp_landmark_list))
+
+    return temp_landmark_list
+
+def pre_process_point_history(image, point_history):
+    image_width, image_height = image.shape[1], image.shape[0]
+
+    temp_point_history = copy.deepcopy(point_history)
+
+    # Convert to relative coordinates
+    base_x, base_y = 0, 0
+    for index, point in enumerate(temp_point_history):
+        if index == 0:
+            base_x, base_y = point[0], point[1]
+
+        temp_point_history[index][0] = (temp_point_history[index][0] - base_x) / image_width
+        temp_point_history[index][1] = (temp_point_history[index][1] - base_y) / image_height
+
+    # Convert to a one-dimensional list
+    temp_point_history = list(itertools.chain.from_iterable(temp_point_history))
+
+    return temp_point_history
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
