@@ -88,6 +88,7 @@ def process_image(image):
     image.flags.writeable = True
 
     predictions = {}
+    accuracy = 0.0  # Initialize accuracy
 
     if results.multi_hand_landmarks is not None:
         for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
@@ -117,9 +118,16 @@ def process_image(image):
             finger_gesture_history.append(finger_gesture_id)
             most_common_fg_id = Counter(finger_gesture_history).most_common()
 
+            predicted_hand_sign = keypoint_classifier_labels[hand_sign_id]
+            predicted_finger_gesture = point_history_classifier_labels[most_common_fg_id[0][0]]
+
+            # Calculate accuracy based on confidence levels
+            accuracy = results.multi_handedness[0].classification[0].score * 100
+
             predictions = {
-                "hand_sign": keypoint_classifier_labels[hand_sign_id],
-                "finger_gesture": point_history_classifier_labels[most_common_fg_id[0][0]]
+                "hand_sign": predicted_hand_sign,
+                "finger_gesture": predicted_finger_gesture,
+                "accuracy": accuracy
             }
             print(predictions)
     else:
