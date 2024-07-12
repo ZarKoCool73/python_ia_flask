@@ -41,8 +41,8 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.hand_sign && data.finger_gesture) {
-                    resultText.textContent = `Hand Sign: ${data.hand_sign}, Finger Gesture: ${data.finger_gesture}`;
+                if (data.hand_sign) {
+                    resultText.textContent = `Hand Sign: ${data.hand_sign}`;
                 } else {
                     resultText.textContent = 'No prediction';
                 }
