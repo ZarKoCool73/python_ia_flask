@@ -9,13 +9,15 @@
     <h1>Hand Gesture Recognition</h1>
     <video id="video" width="640" height="480" autoplay></video>
     <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
-    <button id="capture">Capture</button>
+    <button id="captureLetters">Capture letters</button>
+    <button id="captureNumbers">Capture Numbers</button>
     <p id="result"></p>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const captureButton = document.getElementById('capture');
+        const captureButton = document.getElementById('captureLetters');
+        const captureButtonNumbers = document.getElementById('captureNumbers');
         const resultText = document.getElementById('result');
 
         navigator.mediaDevices.getUserMedia({ video: true })
@@ -32,7 +34,33 @@
 
             const dataURL = canvas.toDataURL('image/jpeg');
 
-            fetch('/predict', {
+            fetch('/predictLetters', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: dataURL }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.hand_sign) {
+                    resultText.textContent = `Hand Sign: ${data.hand_sign}`;
+                } else {
+                    resultText.textContent = 'No prediction';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultText.textContent = 'Prediction error';
+            });
+        });
+        captureButtonNumbers.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const dataURL = canvas.toDataURL('image/jpeg');
+
+            fetch('/predictNumbers', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

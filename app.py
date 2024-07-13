@@ -12,8 +12,11 @@ import mediapipe as mp
 from flask_cors import CORS
 
 from utils import CvFpsCalc
-from model.keypoint_classifier.keypoint_classifier import KeyPointClassifier
-from model.point_history_classifier.point_history_classifier import PointHistoryClassifier
+from modelLetters.keypoint_classifier.keypoint_classifier import KeyPointClassifier as KeyPointClassifierLetters
+from modelNumbers.keypoint_classifier.keypoint_classifier import KeyPointClassifier as KeyPointClassifierNumbers
+
+from modelLetters.point_history_classifier.point_history_classifier import PointHistoryClassifier as PointHistoryClassifierLetters
+from modelNumbers.point_history_classifier.point_history_classifier import PointHistoryClassifier as PointHistoryClassifierNumbers
 
 app = Flask(__name__)
 CORS(app)
@@ -34,11 +37,16 @@ hands = mp_hands.Hands(
 )
 
 # Load models and labels once
-keypoint_classifier = KeyPointClassifier()
-point_history_classifier = PointHistoryClassifier()
+keypoint_classifier_numbers = KeyPointClassifierNumbers()
+point_history_classifier_numbers = PointHistoryClassifierNumbers()
+keypoint_classifier_letters = KeyPointClassifierLetters()
+point_history_classifier_letters = PointHistoryClassifierLetters()
 
-with open('model/keypoint_classifier/keypoint_classifier_label.csv', encoding='utf-8-sig') as f:
-    keypoint_classifier_labels = [row[0] for row in csv.reader(f)]
+with open('modelLetters/keypoint_classifier/keypoint_classifier_label.csv', encoding='utf-8-sig') as f:
+    keypoint_classifier_labels_letters = [row[0] for row in csv.reader(f)]
+
+with open('modelNumbers/keypoint_classifier/keypoint_classifier_label.csv', encoding='utf-8-sig') as f:
+    keypoint_classifier_labels_numbers = [row[0] for row in csv.reader(f)]
 
 
 @app.route('/')
@@ -46,8 +54,8 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/predict', methods=['POST'])
-def predict():
+@app.route('/predictLetters', methods=['POST'])
+def predict_letters():
     try:
         data = request.get_json()
         image_data = data['image'].split(",")[1]  # Remove the data URL prefix
@@ -58,7 +66,7 @@ def predict():
         image_np = cv.cvtColor(image_np, cv.COLOR_RGB2BGR)
 
         # Process the image and get predictions
-        predictions = process_image(image_np)
+        predictions = process_image_letters(image_np)
 
         if not predictions:
             return jsonify({"error": "No hand sign detected"}), 400
@@ -71,7 +79,7 @@ def predict():
         image.close()  # Ensure the PIL image resource is released
 
 
-def process_image(image):
+def process_image_letters(image):
     point_history = deque(maxlen=HISTORY_LENGTH)
     finger_gesture_history = deque(maxlen=HISTORY_LENGTH)
 
@@ -101,7 +109,7 @@ def process_image(image):
             pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
 
             # Hand sign classification
-            hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+            hand_sign_id = keypoint_classifier_letters(pre_processed_landmark_list)
             if hand_sign_id == 2:  # Point gesture
                 point_history.append(landmark_list[8])
             else:
@@ -110,12 +118,101 @@ def process_image(image):
             # Finger gesture classification
             finger_gesture_id = 0
             if len(pre_processed_point_history_list) == (HISTORY_LENGTH * 2):
-                finger_gesture_id = point_history_classifier(pre_processed_point_history_list)
+                finger_gesture_id = point_history_classifier_letters(pre_processed_point_history_list)
 
             # Calculates the gesture IDs in the latest detection
             finger_gesture_history.append(finger_gesture_id)
 
-            predicted_hand_sign = keypoint_classifier_labels[hand_sign_id]
+            predicted_hand_sign = keypoint_classifier_labels_letters[hand_sign_id]
+
+            # Calculate accuracy based on confidence levels
+            accuracy = handedness.classification[0].score * 100
+
+            predictions = {
+                "hand_sign": predicted_hand_sign,
+                "accuracy": accuracy
+            }
+            print(predictions)
+    else:
+        point_history.append([0, 0])
+
+    # Return None if no hand landmarks are detected
+    if not predictions:
+        return None
+
+    return predictions
+
+
+@app.route('/predictNumbers', methods=['POST'])
+def predict_numbers():
+    try:
+        data = request.get_json()
+        image_data = data['image'].split(",")[1]  # Remove the data URL prefix
+        image = Image.open(BytesIO(base64.b64decode(image_data)))
+        image_np = np.array(image)
+
+        # Convert RGB to BGR as OpenCV expects images in BGR format
+        image_np = cv.cvtColor(image_np, cv.COLOR_RGB2BGR)
+
+        # Process the image and get predictions
+        predictions = process_image_numbers(image_np)
+
+        if not predictions:
+            return jsonify({"error": "No hand sign detected"}), 400
+
+        return jsonify(predictions)
+    except Exception as e:
+        print(f"Error during prediction: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        image.close()
+
+
+def process_image_numbers(image):
+    point_history = deque(maxlen=HISTORY_LENGTH)
+    finger_gesture_history = deque(maxlen=HISTORY_LENGTH)
+
+    # Flip the image horizontally for a later selfie-view display
+    image = cv.flip(image, 1)
+    debug_image = copy.deepcopy(image)
+
+    # Convert the BGR image to RGB before processing
+    image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+    image.flags.writeable = False
+    results = hands.process(image)
+    image.flags.writeable = True
+
+    predictions = {}
+    accuracy = 0.0  # Initialize accuracy
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+            # Bounding box calculation
+            brect = calc_bounding_rect(debug_image, hand_landmarks)
+            # Landmark calculation
+            landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+
+            # Conversion to relative coordinates / normalized coordinates
+            pre_processed_landmark_list = pre_process_landmark(landmark_list)
+            pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
+
+            # Hand sign classification
+            hand_sign_id = keypoint_classifier_numbers(pre_processed_landmark_list)
+            if hand_sign_id == 2:  # Point gesture
+                point_history.append(landmark_list[8])
+            else:
+                point_history.append([0, 0])
+
+            # Finger gesture classification
+            finger_gesture_id = 0
+            if len(pre_processed_point_history_list) == (HISTORY_LENGTH * 2):
+                finger_gesture_id = point_history_classifier_numbers(pre_processed_point_history_list)
+
+            # Calculates the gesture IDs in the latest detection
+            finger_gesture_history.append(finger_gesture_id)
+
+            predicted_hand_sign = keypoint_classifier_labels_numbers[hand_sign_id]
 
             # Calculate accuracy based on confidence levels
             accuracy = handedness.classification[0].score * 100
