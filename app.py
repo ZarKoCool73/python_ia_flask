@@ -2,6 +2,7 @@ import base64
 from flask import Flask, request, jsonify, render_template
 import cv2 as cv
 import numpy as np
+import io
 from io import BytesIO
 from PIL import Image
 import copy
@@ -10,7 +11,7 @@ from collections import Counter, deque
 import csv
 import mediapipe as mp
 from flask_cors import CORS
-
+from keras.models import load_model
 from utils import CvFpsCalc
 from modelLetters.keypoint_classifier.keypoint_classifier import KeyPointClassifier as KeyPointClassifierLetters
 from modelNumbers.keypoint_classifier.keypoint_classifier import KeyPointClassifier as KeyPointClassifierNumbers
@@ -37,8 +38,12 @@ hands = mp_hands.Hands(
 )
 
 # Load models and labels once
+model_verbs = load_model("modelVerbs/keras_model.h5", compile=False)
+class_names_verbs = open("modelVerbs/labels.txt", "r").readlines()
+
 keypoint_classifier_numbers = KeyPointClassifierNumbers()
 point_history_classifier_numbers = PointHistoryClassifierNumbers()
+
 keypoint_classifier_letters = KeyPointClassifierLetters()
 point_history_classifier_letters = PointHistoryClassifierLetters()
 
@@ -231,6 +236,46 @@ def process_image_numbers(image):
 
     return predictions
 
+def get_predictions_from_image_verbs(image):
+    # Resize the image to the required size (224x224)
+    image = cv.resize(image, (224, 224), interpolation=cv.INTER_AREA)
+
+    # Convert the image to a numpy array and normalize it
+    image = np.asarray(image, dtype=np.float32).reshape(1, 224, 224, 3)
+    image = (image / 127.5) - 1
+
+    # Predict the model
+    prediction = model_verbs.predict(image)
+    index = np.argmax(prediction)
+    class_name = class_names_verbs[index].strip()
+    confidence_score = prediction[0][index]
+
+    # Return prediction and confidence score
+    return {
+        "hand_sign": class_name,
+        "accuracy": str(np.round(confidence_score * 100))[:-2] + "%"
+    }
+
+@app.route('/predictVerbs', methods=['POST'])
+def predict_verbs():
+    try:
+        data = request.get_json()
+        image_data = data['image'].split(",")[1]  # Remove the data URL prefix
+        image = Image.open(io.BytesIO(base64.b64decode(image_data)))
+        image_np = np.array(image)
+
+        # Convert RGB to BGR as OpenCV expects images in BGR format
+        image_np = cv.cvtColor(image_np, cv.COLOR_RGB2BGR)
+
+        predictions = get_predictions_from_image_verbs(image_np)
+
+        if not predictions:
+            return jsonify({"error": "No hand sign detected"}), 400
+
+        return jsonify(predictions)
+    except Exception as e:
+        print(f"Error during prediction: {e}")
+        return jsonify({"error": str(e)}), 500
 
 def calc_bounding_rect(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
