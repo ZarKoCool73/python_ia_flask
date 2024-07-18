@@ -1,5 +1,5 @@
-0 callar
-1 abrazar
-2 curiosear
-3 dormir
-4 perdonar
+callar
+abrazar
+curiosear
+dormir
+perdonar
